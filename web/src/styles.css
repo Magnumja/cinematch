@@ -1,0 +1,100 @@
+@import 'tailwindcss';
+@import '@fontsource-variable/big-shoulders-display';
+@import '@fontsource-variable/schibsted-grotesk';
+
+@theme {
+  --color-ink: #060607;
+  --color-graphite: #16171a;
+  --color-matte: #26272b;
+  --color-fog: #8f8c86;
+  --color-paper: #eeeae3;
+  --color-ember: #f0872f;
+  --color-ember-deep: #c96a1d;
+  --color-signal-red: #c24a3e;
+  --color-signal-violet: #8b74d6;
+  --color-signal-amber: #e2b04a;
+
+  --font-display: 'Big Shoulders Display Variable', 'Arial Narrow', sans-serif;
+  --font-sans: 'Schibsted Grotesk Variable', system-ui, sans-serif;
+
+  --ease-calm: cubic-bezier(0.2, 0.7, 0.2, 1);
+}
+
+:root {
+  /* Matiz da luz ambiente; o filme em foco atualiza via JS (lib/ambient.ts). */
+  --ambient-hue: 24;
+  --ambient-strength: 0.16;
+}
+
+html {
+  background: var(--color-ink);
+  color: var(--color-paper);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+}
+
+body {
+  min-height: 100dvh;
+}
+
+/* Luz ambiente: duas manchas de baixa opacidade, atrás de todo o conteúdo. */
+.ambient {
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background:
+    radial-gradient(60rem 36rem at 12% -8%, hsl(var(--ambient-hue) 70% 45% / var(--ambient-strength)), transparent 70%),
+    radial-gradient(48rem 30rem at 100% 0%, hsl(var(--ambient-hue) 40% 30% / calc(var(--ambient-strength) * 0.6)), transparent 70%),
+    var(--color-ink);
+  transition: background 900ms var(--ease-calm);
+}
+
+/* @property permite animar a matiz suavemente em vez de saltar entre gradientes. */
+@property --ambient-hue {
+  syntax: '<number>';
+  inherits: true;
+  initial-value: 24;
+}
+:root {
+  transition: --ambient-hue 900ms var(--ease-calm);
+}
+
+:focus-visible {
+  outline: 2px solid var(--color-ember);
+  outline-offset: 3px;
+  border-radius: 4px;
+}
+
+.reveal {
+  animation: reveal 520ms var(--ease-calm) both;
+}
+@keyframes reveal {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+}
+
+.skeleton {
+  background: linear-gradient(90deg, var(--color-graphite), var(--color-matte), var(--color-graphite));
+  background-size: 200% 100%;
+  animation: shimmer 1.4s linear infinite;
+  border-radius: 6px;
+}
+@keyframes shimmer {
+  to {
+    background-position: -200% 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root,
+  .ambient {
+    transition: none;
+  }
+  .reveal,
+  .skeleton {
+    animation: none;
+  }
+}

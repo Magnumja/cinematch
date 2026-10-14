@@ -1,0 +1,52 @@
+{
+  "name": "cinematch",
+  "version": "0.1.0",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc --noEmit -p . && vite build",
+    "preview": "vite preview",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "typecheck": "tsc --noEmit -p .",
+    "catalog:fetch": "node scripts/wikidata/fetch.ts",
+    "catalog:load": "node scripts/wikidata/load.ts",
+    "check:functions": "npx --yes deno@2.5.6 check --config supabase/functions/deno.json supabase/functions/recommend/index.ts supabase/functions/scheduled-run/index.ts supabase/functions/assistant/index.ts"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Magnumja/cinematch.git"
+  },
+  "bugs": {
+    "url": "https://github.com/Magnumja/cinematch/issues"
+  },
+  "homepage": "https://github.com/Magnumja/cinematch#readme",
+  "private": true,
+  "type": "module",
+  "dependencies": {
+    "@fontsource-variable/big-shoulders-display": "^5.3.0",
+    "@fontsource-variable/schibsted-grotesk": "^5.3.0",
+    "@supabase/supabase-js": "^2.117.3",
+    "react": "^19.3.0",
+    "react-dom": "^19.3.0",
+    "react-router-dom": "^7.18.4",
+    "zod": "^4.6.7"
+  },
+  "devDependencies": {
+    "@tailwindcss/vite": "^4.3.3",
+    "@testing-library/jest-dom": "^7.0.1",
+    "@testing-library/react": "^16.3.3",
+    "@types/node": "^26.6.5",
+    "@types/react": "^19.3.0",
+    "@types/react-dom": "^19.3.0",
+    "@vitejs/plugin-react": "^6.1.2",
+    "jsdom": "^30.1.2",
+    "supabase": "^2.120.0",
+    "tailwindcss": "^4.3.3",
+    "typescript": "^7.0.2",
+    "vite": "^8.3.4",
+    "vitest": "^5.0.4"
+  },
+  "engines": {
+    "node": ">=22"
+  }
+}
