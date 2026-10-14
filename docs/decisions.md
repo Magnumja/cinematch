@@ -1,4 +1,4 @@
-# Registro de decisões — CineMatch AI
+# Registro de decisões — Cineou
 
 Formato: cada decisão tem ID, tema, status, decisão, motivo, alternativas e data.
 

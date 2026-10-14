@@ -1,4 +1,4 @@
-// Gêneros canônicos do CineMatch. O importador do Wikidata mapeia os gêneros
+// Gêneros canônicos do Cineou. O importador do Wikidata mapeia os gêneros
 // originais (centenas de subgêneros) para esta lista curta.
 
 export const GENRES = [

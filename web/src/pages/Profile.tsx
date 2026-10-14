@@ -79,7 +79,7 @@ export default function Profile() {
     const url = URL.createObjectURL(new Blob([json], { type: 'application/json' }));
     const a = document.createElement('a');
     a.href = url;
-    a.download = 'cinematch-meus-dados.json';
+    a.download = 'cineou-meus-dados.json';
     a.click();
     URL.revokeObjectURL(url);
   }

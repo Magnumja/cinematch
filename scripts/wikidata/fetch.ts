@@ -7,7 +7,7 @@ import { MovieSchema, type Movie, type Rating } from '../../core/schemas.ts';
 import { mapGenreLabels, mergeRatings, parseScore, toMinutes } from './map.ts';
 
 const ENDPOINT = 'https://query.wikidata.org/sparql';
-const USER_AGENT = 'CineMatchCatalogImport/0.1 (https://github.com/Magnumja/cinematch)';
+const USER_AGENT = 'CineouCatalogImport/0.1 (https://github.com/Magnumja/cinematch)';
 const BATCH = 400;
 const PAUSE_MS = 400;
 const CACHE_DIR = 'data/wikidata-cache';

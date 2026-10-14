@@ -1,4 +1,4 @@
-# Termos de Uso — CineMatch AI (RASCUNHO)
+# Termos de Uso — Cineou (RASCUNHO)
 
 > **Rascunho técnico, não é texto jurídico final.** Descreve o que o produto faz hoje (beta fechado, gratuito).
 > Revisar com profissional de direito antes do beta. Campos entre colchetes: preencher.
@@ -6,7 +6,7 @@
 **Fornecedor:** [nome completo ou razão social] · **Contato:** [e-mail] · **Vigência:** [data]
 
 ## 1. O que é o serviço
-O CineMatch AI recomenda filmes com base nas preferências e no histórico que você informa.
+O Cineou recomenda filmes com base nas preferências e no histórico que você informa.
 Ele não é um serviço de streaming: não exibe, vende nem aluga filmes, e não informa onde assistir.
 
 ## 2. Beta fechado
@@ -26,7 +26,7 @@ Ele não é um serviço de streaming: não exibe, vende nem aluga filmes, e não
 ## 5. Dados do catálogo
 - Informações dos filmes: Wikidata, disponíveis sob licença CC0. Podem conter erros ou estar incompletas, por exemplo gêneros e durações.
 - Notas da crítica: Rotten Tomatoes e Metacritic, obtidas via Wikidata e sempre exibidas com a fonte. [Pendente de validação jurídica — DEC-010.]
-- O CineMatch AI não é afiliado a nenhum estúdio, serviço de streaming ou site de críticas.
+- O Cineou não é afiliado a nenhum estúdio, serviço de streaming ou site de críticas.
 
 ## 6. Uso aceitável
 Não é permitido:

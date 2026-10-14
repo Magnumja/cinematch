@@ -139,7 +139,7 @@ export default function Home() {
     <div className="space-y-12">
       <header className="flex flex-wrap items-end justify-between gap-5">
         <div>
-          <p className="mb-3 text-xs font-medium uppercase tracking-[0.2em] text-ember">CineMatch / {t('home.forYou')}</p>
+          <p className="mb-3 text-xs font-medium uppercase tracking-[0.2em] text-ember">Cineou / {t('home.forYou')}</p>
           <h1 className="font-display text-5xl font-bold tracking-tight sm:text-6xl">{t('home.title')}</h1>
           <p className="mt-3 text-sm text-fog">{t('home.intro')}</p>
         </div>
