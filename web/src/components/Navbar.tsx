@@ -23,7 +23,7 @@ export function Navbar() {
       <nav className="mx-auto flex h-16 max-w-6xl items-center justify-between gap-6 px-5 sm:px-8" aria-label="Principal">
         {/* Marca provisória até a logo oficial chegar. */}
         <NavLink to="/" className="font-display text-2xl font-extrabold tracking-tight text-paper uppercase" onClick={() => setOpen(false)}>
-          CineMatch<span className="text-ember"> AI</span>
+          Cineou
         </NavLink>
 
         <ul className="hidden items-center gap-1 rounded-full border border-matte bg-graphite/60 p-1 lg:flex">

@@ -1,4 +1,4 @@
-// Conversões puras dos valores brutos do Wikidata para o modelo do CineMatch.
+// Conversões puras dos valores brutos do Wikidata para o modelo do Cineou.
 import type { Genre } from '../../core/domain/genres.ts';
 import type { Rating } from '../../core/schemas.ts';
 

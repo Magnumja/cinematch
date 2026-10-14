@@ -4,7 +4,7 @@
 
 ## Conclusão principal
 
-O TMDB não pode ser usado pelo CineMatch AI sem contrato comercial. Termos da API (atualizados em 2023-10-20):
+O TMDB não pode ser usado pelo Cineou sem contrato comercial. Termos da API (atualizados em 2023-10-20):
 
 - §1.C proíbe *"Use the TMDB APIs or TMDB Content in connection with, including for training, a machine learning (ML)
   or artificial intelligence (AI) based Application."* — vale mesmo para uso não comercial.

@@ -1,4 +1,4 @@
-# Arquitetura — CineMatch AI (MVP)
+# Arquitetura — Cineou (MVP)
 
 ## Visão geral
 

@@ -1,4 +1,4 @@
-# CineMatch AI — contexto para sessões de desenvolvimento
+# Cineou — contexto para sessões de desenvolvimento
 
 App web de recomendação de filmes: uma recomendação por vez, explicada, respeitando restrições do usuário e aprendendo com feedback.
 Decisões e motivos: `docs/decisions.md` (fonte da verdade). Arquitetura: `docs/architecture.md`. Licenças: `docs/api-research.md`.

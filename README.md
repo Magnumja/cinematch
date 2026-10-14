@@ -1,4 +1,4 @@
-# CineMatch AI
+# Cineou
 
 Encontra o próximo filme certo para você: uma recomendação por vez, com o motivo explicado, respeitando seus limites e aprendendo com o seu feedback.
 

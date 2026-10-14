@@ -44,7 +44,7 @@ export default function Auth() {
       <div className="reveal auth-intro">
         <div className="cinema-orbit" aria-hidden="true"><span /><span /><span /></div>
         <p className="font-display text-2xl font-extrabold text-paper uppercase">
-          CineMatch<span className="text-ember"> AI</span>
+          Cineou
         </p>
         <p className="relative mt-12 text-xs font-medium tracking-[0.2em] text-ember">{t('auth.eyebrow')}</p>
         <h1 className="relative mt-5 font-display text-[clamp(3rem,7vw,6rem)] leading-[0.96] font-extrabold text-balance text-paper uppercase">{t('auth.title')}</h1>

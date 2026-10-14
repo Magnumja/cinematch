@@ -1,4 +1,4 @@
-# Política de Privacidade — CineMatch AI (RASCUNHO)
+# Política de Privacidade — Cineou (RASCUNHO)
 
 > **Rascunho técnico, não é texto jurídico final.** Escrito a partir do que o código realmente coleta e faz.
 > Precisa de revisão por profissional de direito antes do beta. Campos entre colchetes precisam ser preenchidos pelo responsável.
@@ -23,7 +23,7 @@ O app não usa cookies de publicidade nem ferramentas de rastreamento de terceir
 ## 2. Assistente de IA
 
 Quando o assistente estiver ativo, o texto que você digitar nele é enviado à Anthropic (fornecedora do modelo Claude) só para ser convertido em filtros de busca.
-O CineMatch AI não guarda o texto das conversas.
+O Cineou não guarda o texto das conversas.
 [Verificar e descrever a política de retenção de dados da API da Anthropic vigente na data de publicação — NÃO VERIFICADO.]
 
 ## 3. Bases legais (LGPD, art. 7º)
