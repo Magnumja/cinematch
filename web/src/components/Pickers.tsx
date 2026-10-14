@@ -1,3 +1,4 @@
+import { AnimatedInput } from './AnimatedInput.tsx';
 // Controles de preferência compartilhados por onboarding, perfil e Descobrir.
 import { useEffect, useState } from 'react';
 import { displayTitle } from '../../../core/db.ts';
@@ -82,7 +83,7 @@ export function FavoritesPicker({ value, onChange, max }: { value: string[]; onC
           ))}
         </ul>
       )}
-      <input
+      <AnimatedInput
         type="search"
         value={query}
         onChange={(e) => setQuery(e.target.value)}

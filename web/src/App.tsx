@@ -1,3 +1,4 @@
+import { AnimatedInput } from './components/AnimatedInput.tsx';
 // Rotas e guarda de acesso: sem sessão → login; sem onboarding → onboarding; senão o app.
 import { BrowserRouter, Navigate, Outlet, Route, Routes } from 'react-router-dom';
 import { Navbar } from './components/Navbar.tsx';
@@ -28,12 +29,12 @@ function Layout() {
         {t('nav.skip')}
       </a>
       <Navbar />
-      <main id="main" className="mx-auto max-w-6xl px-5 py-10 sm:px-8 sm:py-14">
+      <main id="main" className="page-stage mx-auto max-w-6xl px-5 py-10 sm:px-8 sm:py-14">
         <Suspense fallback={<PageFallback />}>
           <Outlet />
         </Suspense>
       </main>
-      <footer className="mx-auto max-w-6xl px-5 pb-10 text-xs text-fog sm:px-8">{t('movie.source')}</footer>
+      <footer className="mx-auto max-w-6xl px-5 pb-10 text-xs text-fog sm:px-8">{t('movie.source')}<span className="mt-3 block">UI: <a href="https://ui.unlumen.com" className="underline underline-offset-4 hover:text-paper">Unlumen UI</a> · <a href="https://skiper-ui.com" className="underline underline-offset-4 hover:text-paper">Skiper UI</a></span></footer>
     </>
   );
 }
@@ -60,7 +61,7 @@ function SetNewPassword() {
       <form onSubmit={(e) => void submit(e)} className="rounded-[24px] bg-graphite/60 p-7 ring-1 ring-matte">
         <label className="block">
           <span className="text-sm text-fog">{t('auth.newPassword')}</span>
-          <input
+          <AnimatedInput
             type="password"
             required
             minLength={8}

@@ -1,3 +1,4 @@
+import { AnimatedInput } from '../components/AnimatedInput.tsx';
 // Entrar ou criar conta (DEC-027: e-mail e senha via Supabase Auth).
 import { useState, type FormEvent } from 'react';
 import { Button } from '../components/ui.tsx';
@@ -39,25 +40,32 @@ export default function Auth() {
   const field = 'mt-1.5 block w-full rounded-xl bg-graphite px-4 py-3 text-paper ring-1 ring-matte focus:ring-fog/50 focus:outline-none';
 
   return (
-    <main className="mx-auto grid min-h-dvh max-w-6xl items-center gap-14 px-5 py-16 sm:px-8 lg:grid-cols-[1.2fr_1fr]">
-      <div className="reveal">
+    <main className="auth-layout mx-auto grid min-h-dvh max-w-6xl items-center gap-10 px-5 py-10 sm:px-8 lg:grid-cols-[1.2fr_1fr]">
+      <div className="reveal auth-intro">
+        <div className="cinema-orbit" aria-hidden="true"><span /><span /><span /></div>
         <p className="font-display text-2xl font-extrabold text-paper uppercase">
           CineMatch<span className="text-ember"> AI</span>
         </p>
-        <h1 className="mt-8 font-display text-[clamp(3rem,7vw,6rem)] leading-[0.96] font-extrabold text-balance text-paper uppercase">{t('auth.title')}</h1>
+        <p className="relative mt-12 text-xs font-medium tracking-[0.2em] text-ember">{t('auth.eyebrow')}</p>
+        <h1 className="relative mt-5 font-display text-[clamp(3rem,7vw,6rem)] leading-[0.96] font-extrabold text-balance text-paper uppercase">{t('auth.title')}</h1>
         <p className="mt-6 max-w-md text-lg text-fog">{t('auth.subtitle')}</p>
+              <ol className="auth-steps">
+          {(['auth.step1', 'auth.step2', 'auth.step3'] as const).map((key, i) => (
+            <li key={key}><span aria-hidden="true">0{i + 1}</span>{t(key)}</li>
+          ))}
+        </ol>
       </div>
 
-      <form onSubmit={(e) => void submit(e)} className="reveal rounded-[24px] bg-graphite/60 p-7 ring-1 ring-matte sm:p-9">
+      <form onSubmit={(e) => void submit(e)} className="reveal auth-form rounded-[24px] bg-graphite/60 p-7 ring-1 ring-matte sm:p-9">
         <h2 className="text-xl font-medium text-paper">{t(TITLES[mode])}</h2>
         <label className="mt-6 block">
           <span className="text-sm text-fog">{t('auth.email')}</span>
-          <input type="email" required autoComplete="email" value={email} onChange={(e) => setEmail(e.target.value)} className={field} />
+          <AnimatedInput type="email" required autoComplete="email" value={email} onChange={(e) => setEmail(e.target.value)} className={field} />
         </label>
         {mode !== 'reset' && (
         <label className="mt-4 block">
           <span className="text-sm text-fog">{t('auth.password')}</span>
-          <input
+          <AnimatedInput
             type="password"
             required
             minLength={8}
@@ -92,6 +100,7 @@ export default function Auth() {
           </button>
         )}
         <p className="mt-6 border-t border-matte pt-4 text-xs text-fog">{t('auth.privacy')}</p>
+        <p className="mt-4 text-xs text-fog">UI: <a href="https://ui.unlumen.com" className="underline underline-offset-4 hover:text-paper">Unlumen UI</a> · <a href="https://skiper-ui.com" className="underline underline-offset-4 hover:text-paper">Skiper UI</a></p>
       </form>
     </main>
   );

@@ -1,5 +1,7 @@
 // Cards tipográficos (sem pôster, DEC-008). O título em fonte de letreiro é a "imagem" do filme.
-import { useState, type ReactNode } from 'react';
+import { useState, type CSSProperties, type ReactNode } from 'react';
+import { Tilt } from './unlumen-ui/Tilt.tsx';
+import { AnimatedLink } from './skiper-ui/AnimatedLink.tsx';
 import { Link } from 'react-router-dom';
 import { displayTitle } from '../../../core/db.ts';
 import { GENRE_HUES, GENRE_LABELS, type Genre } from '../../../core/domain/genres.ts';
@@ -94,7 +96,7 @@ export function FeedbackBar({ onFeedback, current }: { onFeedback: (f: Feedback,
             disabled={busy}
             aria-pressed={given === f}
             onClick={() => void send(f)}
-            className={`rounded-full px-3 py-1.5 text-xs ring-1 transition-colors duration-200 disabled:opacity-50 ${given === f ? 'text-paper ring-ember/60' : 'text-fog ring-matte hover:text-paper hover:ring-fog/40'}`}
+            className={`min-h-11 rounded-full px-3 py-1.5 text-xs ring-1 transition-colors duration-200 disabled:opacity-50 ${given === f ? 'text-paper ring-ember/60' : 'text-fog ring-matte hover:text-paper hover:ring-fog/40'}`}
           >
             {t(`fb.${f}`)}
           </button>
@@ -116,7 +118,7 @@ export function FeedbackBar({ onFeedback, current }: { onFeedback: (f: Feedback,
                     const next = on ? tags.filter((x) => x !== tag) : [...tags, tag];
                     if (await send(given, next)) setTags(next);
                   }}
-                  className={`rounded-full px-3 py-1 text-xs ring-1 transition-colors ${on ? 'text-paper ring-ember/60' : 'text-fog ring-matte hover:text-paper'}`}
+                  className={`min-h-11 rounded-full px-3 py-1 text-xs ring-1 transition-colors ${on ? 'text-paper ring-ember/60' : 'text-fog ring-matte hover:text-paper'}`}
                 >
                   {t(`tag.${tag}`)}
                 </button>
@@ -164,14 +166,15 @@ export function HeroCard({ item, movie, movies, saved, onSave, onFeedback, onAno
       aria-labelledby="hero-title"
       onMouseEnter={() => setAmbient(movie)}
       onFocus={() => setAmbient(movie)}
-      className="reveal relative overflow-hidden rounded-[28px] bg-graphite/60 ring-1 ring-matte backdrop-blur-sm"
+      className="reveal cinema-hero relative overflow-hidden rounded-[28px] bg-graphite/60 ring-1 ring-matte"
+      style={{ '--film-hue': hueOf(movie) } as CSSProperties}
     >
       {/* Faixa de cor do gênero: a única "imagem" do card. */}
       <div aria-hidden="true" className="absolute inset-y-0 left-0 w-1.5" style={{ background: `hsl(${hueOf(movie)} 55% 50% / 0.8)` }} />
-      <div className="grid gap-10 p-7 sm:p-10 lg:grid-cols-[1.4fr_1fr] lg:gap-14 lg:p-14">
+      <div className="relative grid gap-10 p-7 sm:p-10 lg:grid-cols-[1.4fr_1fr] lg:gap-14 lg:p-14">
         <div className="min-w-0">
           <div className="flex flex-wrap items-center gap-x-5 gap-y-2">
-            <p className="text-sm text-ember">{label}</p>
+            <p className="rounded-full border border-ember/30 bg-ink/40 px-3 py-1.5 text-xs font-medium uppercase tracking-wider text-ember">{label}</p>
             <TierLabel tier={item.tier} />
           </div>
           <h2
@@ -184,12 +187,12 @@ export function HeroCard({ item, movie, movies, saved, onSave, onFeedback, onAno
             <MovieMeta movie={movie} size="md" />
           </div>
           {description && <p className="mt-4 max-w-[52ch] text-fog first-letter:uppercase">{description}</p>}
-          <Link to={`/movie/${movie.id}`} className="mt-6 inline-block text-sm text-fog underline decoration-matte underline-offset-4 transition-colors hover:text-paper hover:decoration-fog">
+          <AnimatedLink to={`/movie/${movie.id}`} className="mt-6 text-sm text-fog hover:text-paper">
             {t('movie.details')}
-          </Link>
+          </AnimatedLink>
         </div>
 
-        <div className="flex flex-col justify-between gap-8 lg:border-l lg:border-matte lg:pl-12">
+        <div className="hero-reasons flex flex-col justify-between gap-8 rounded-2xl border border-paper/10 bg-ink/35 p-5 sm:p-6">
           <div>
             <h3 className="text-sm text-fog">{t('movie.why')}</h3>
             <ul className="mt-3 space-y-3">
@@ -217,22 +220,24 @@ export function HeroCard({ item, movie, movies, saved, onSave, onFeedback, onAno
   );
 }
 
-export function CompactCard({ item, movie, movies, saved, onSave }: Omit<CardProps, 'onFeedback'>) {
+export function CompactCard({ item, movie, movies, saved, onSave, entranceDelay = 0 }: Omit<CardProps, 'onFeedback'> & { entranceDelay?: number }) {
   const { t, locale } = useI18n();
   const reason = explain(item.factors, locale, (id) => {
     const m = movies.get(id);
     return m ? displayTitle(m, locale) : undefined;
   }, 1)[0];
   return (
+    <Tilt className="h-full" entranceDelay={entranceDelay}>
     <article
       onMouseEnter={() => setAmbient(movie)}
       onFocus={() => setAmbient(movie)}
-      className="group relative flex h-full flex-col justify-between gap-5 overflow-hidden rounded-2xl bg-graphite/50 p-5 ring-1 ring-matte transition-[box-shadow,background-color] duration-300 hover:bg-graphite/80 hover:ring-fog/30 focus-within:ring-fog/40"
+      style={{ '--film-hue': hueOf(movie) } as CSSProperties}
+      className="movie-card group relative flex h-full flex-col justify-between gap-5 overflow-hidden rounded-2xl p-5 ring-1 ring-matte hover:ring-fog/30 focus-within:ring-fog/40 motion-safe:hover:shadow-[0_12px_30px_#0004]"
     >
       <div aria-hidden="true" className="absolute inset-x-0 top-0 h-0.5" style={{ background: `hsl(${hueOf(movie)} 55% 50% / 0.7)` }} />
       <div className="min-w-0">
         <TierLabel tier={item.tier} />
-        <h3 className="mt-3 font-display text-3xl leading-[0.95] font-bold text-balance text-paper uppercase">
+        <h3 className="mt-7 min-h-20 font-display text-4xl leading-[0.95] font-bold text-balance text-paper uppercase">
           <Link to={`/movie/${movie.id}`} className="after:absolute after:inset-0 focus-visible:outline-none">
             {displayTitle(movie, locale)}
           </Link>
@@ -248,6 +253,7 @@ export function CompactCard({ item, movie, movies, saved, onSave }: Omit<CardPro
         </Button>
       </div>
     </article>
+    </Tilt>
   );
 }
 

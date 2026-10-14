@@ -1,3 +1,4 @@
+import { AnimatedInput } from '../components/AnimatedInput.tsx';
 // Assistente (Modo B): o pedido em texto vira filtros; o motor escolhe entre filmes reais.
 // A conversa fica só na sessão do navegador: não há tabela de conversas no MVP (DEC-020).
 import { useState, type FormEvent } from 'react';
@@ -103,7 +104,7 @@ export default function Assistant() {
           <label className="sr-only" htmlFor="assistant-input">
             {t('assistant.placeholder')}
           </label>
-          <input
+          <AnimatedInput
             id="assistant-input"
             value={message}
             onChange={(e) => setMessage(e.target.value)}

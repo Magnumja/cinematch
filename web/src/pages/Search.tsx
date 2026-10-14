@@ -1,3 +1,4 @@
+import { AnimatedInput } from '../components/AnimatedInput.tsx';
 // Busca por título no catálogo (Wikidata). Sem LLM.
 import { useEffect, useState } from 'react';
 import type { Movie } from '../../../core/schemas.ts';
@@ -33,7 +34,7 @@ export default function Search() {
   return (
     <div className="max-w-4xl">
       <PageHeader title={t('search.title')} />
-      <input
+      <AnimatedInput
         type="search"
         autoFocus
         value={query}

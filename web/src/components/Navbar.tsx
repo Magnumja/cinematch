@@ -12,7 +12,7 @@ const LINKS: { to: string; key: MessageKey }[] = [
 ];
 
 const linkClass = ({ isActive }: { isActive: boolean }) =>
-  `relative py-1 text-sm transition-colors duration-200 ${isActive ? 'text-paper' : 'text-fog hover:text-paper'}`;
+  `nav-link ${isActive ? 'nav-link-active' : 'text-fog hover:text-paper'}`;
 
 export function Navbar() {
   const { t } = useI18n();
@@ -26,7 +26,7 @@ export function Navbar() {
           CineMatch<span className="text-ember"> AI</span>
         </NavLink>
 
-        <ul className="hidden items-center gap-7 md:flex">
+        <ul className="hidden items-center gap-1 rounded-full border border-matte bg-graphite/60 p-1 lg:flex">
           {LINKS.map((l) => (
             <li key={l.to}>
               <NavLink to={l.to} end={l.to === '/'} className={linkClass}>
@@ -40,14 +40,14 @@ export function Navbar() {
           <NavLink
             to="/profile"
             className={({ isActive }) =>
-              `hidden rounded-full px-3 py-1.5 text-sm ring-1 transition-colors md:inline-flex ${isActive ? 'text-paper ring-fog/50' : 'text-fog ring-matte hover:text-paper'}`
+              `hidden min-h-11 items-center rounded-full px-4 py-2 text-sm ring-1 transition-colors lg:inline-flex ${isActive ? 'text-paper ring-fog/50' : 'text-fog ring-matte hover:text-paper'}`
             }
           >
             {t('nav.profile')}
           </NavLink>
           <button
             type="button"
-            className="rounded-full px-3 py-1.5 text-sm text-fog ring-1 ring-matte md:hidden"
+            className="min-h-11 rounded-full px-4 py-2 text-sm text-paper ring-1 ring-matte lg:hidden"
             aria-expanded={open}
             aria-controls="mobile-menu"
             onClick={() => setOpen((v) => !v)}
@@ -58,10 +58,10 @@ export function Navbar() {
       </nav>
 
       {open && (
-        <ul id="mobile-menu" className="reveal border-t border-matte/60 px-5 py-3 md:hidden">
+        <ul id="mobile-menu" className="menu-reveal border-t border-matte/60 px-5 py-3 lg:hidden">
           {[...LINKS, { to: '/profile', key: 'nav.profile' as MessageKey }].map((l) => (
             <li key={l.to}>
-              <NavLink to={l.to} end={l.to === '/'} className={({ isActive }) => `block py-2.5 ${isActive ? 'text-paper' : 'text-fog'}`} onClick={() => setOpen(false)}>
+              <NavLink to={l.to} end={l.to === '/'} className={({ isActive }) => `block rounded-xl px-4 py-3 ${isActive ? 'bg-ember/15 text-ember' : 'text-fog'}`} onClick={() => setOpen(false)}>
                 {t(l.key)}
               </NavLink>
             </li>

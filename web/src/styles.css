@@ -6,7 +6,7 @@
   --color-ink: #060607;
   --color-graphite: #16171a;
   --color-matte: #26272b;
-  --color-fog: #8f8c86;
+  --color-fog: #aaa7a1;
   --color-paper: #eeeae3;
   --color-ember: #f0872f;
   --color-ember-deep: #c96a1d;
@@ -60,10 +60,10 @@ body {
   transition: --ambient-hue 900ms var(--ease-calm);
 }
 
+/* Sem border-radius aqui: o outline segue o raio do próprio elemento, e forçar 4px quadrava botões e chips no foco. */
 :focus-visible {
   outline: 2px solid var(--color-ember);
   outline-offset: 3px;
-  border-radius: 4px;
 }
 
 .reveal {
@@ -97,4 +97,154 @@ body {
   .skeleton {
     animation: none;
   }
+}
+
+/* Shared interaction surfaces: restrained depth and a visible current destination. */
+.nav-link {
+  display: flex;
+  min-height: 2.75rem;
+  align-items: center;
+  padding: 0.5rem 1rem;
+  border-radius: 999px;
+  font-size: 0.875rem;
+  transition: background-color 180ms var(--ease-calm), color 180ms var(--ease-calm);
+}
+.nav-link-active { background: var(--color-paper); color: var(--color-ink); }
+button, a, input { -webkit-tap-highlight-color: transparent; }
+button:not(:disabled), a { touch-action: manipulation; }
+::selection { background: var(--color-ember); color: var(--color-ink); }
+
+.cinema-hero {
+  isolation: isolate;
+  background: linear-gradient(115deg, hsl(var(--film-hue) 32% 18%), var(--color-graphite) 65%);
+}
+.cinema-hero::before {
+  content: '';
+  position: absolute;
+  width: 36rem;
+  aspect-ratio: 1;
+  right: -6rem;
+  top: -15rem;
+  border: 1px solid hsl(var(--film-hue) 50% 65% / 0.14);
+  border-radius: 50%;
+  box-shadow: 0 0 0 3rem hsl(var(--film-hue) 50% 65% / 0.035), 0 0 0 6rem hsl(var(--film-hue) 50% 65% / 0.025);
+  pointer-events: none;
+}
+/* Component rules stay in @layer components so Tailwind utilities on the same element still win. */
+@layer components {
+  .movie-card {
+    background: linear-gradient(155deg, hsl(var(--film-hue) 25% 17%), var(--color-graphite) 70%);
+    transition: transform 250ms var(--ease-calm), box-shadow 250ms var(--ease-calm);
+  }
+  .skiper-link { display: inline-flex; align-items: center; gap: 0.5em; min-height: 2.75rem; }
+}
+.movie-card:focus-within { outline: 2px solid var(--color-ember); outline-offset: 4px; }
+.explore-panel { background: radial-gradient(ellipse at top right, #8b74d614, transparent 70%), var(--color-graphite); }
+.auth-intro { position: relative; isolation: isolate; }
+.cinema-orbit { position: absolute; inset: -4rem 0 0; overflow: hidden; z-index: -1; pointer-events: none; opacity: 0.65; }
+.cinema-orbit span { position: absolute; width: 27rem; aspect-ratio: 1; border: 1px solid #f0872f26; border-radius: 50%; right: 1rem; top: 0; }
+.cinema-orbit span:nth-child(2) { transform: translate(3rem, 3rem); }
+.cinema-orbit span:nth-child(3) { transform: translate(6rem, 6rem); background: radial-gradient(ellipse at top right, #f0872f14, transparent 65%); }
+.auth-form { position: relative; box-shadow: 0 24px 80px #0005, inset 0 1px 0 #ffffff0a; }
+.auth-steps { position: relative; display: flex; flex-wrap: wrap; gap: 1.5rem; margin-top: 3rem; padding-top: 1.5rem; border-top: 1px solid var(--color-matte); }
+.auth-steps li { max-width: 8rem; font-size: 0.75rem; color: var(--color-fog); }
+.auth-steps span { display: block; margin-bottom: 0.5rem; color: var(--color-ember); font-variant-numeric: tabular-nums; }
+@media (max-width: 767px) {
+  .auth-steps { display: none; }
+  .auth-intro h1 { font-size: 2.75rem; margin-top: 1rem; }
+  .auth-intro > p:nth-of-type(2) { margin-top: 1.5rem; }
+  .auth-intro > p:last-of-type { font-size: 0.875rem; line-height: 1.6; margin-top: 1rem; }
+  .auth-steps li { flex: 1; }
+  .cinema-orbit { opacity: 0.4; }
+}
+/* Motion is progressive enhancement: content stays visible without animation.
+   Individual translate keeps entrance motion independent from card hover transforms. */
+@keyframes enter-content {
+  from { opacity: 0; translate: 0 12px; }
+  to { opacity: 1; translate: 0 0; }
+}
+@keyframes enter-menu {
+  from { opacity: 0; transform: translateY(-6px) scaleY(0.98); }
+  to { opacity: 1; transform: none; }
+}
+@keyframes settle-orbit {
+  from { opacity: 0; scale: 0.92; rotate: -8deg; }
+  to { opacity: 1; scale: 1; rotate: 0deg; }
+}
+@keyframes confirm-selection {
+  50% { scale: 1.035; }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .page-stage > * { animation: enter-content 360ms var(--ease-calm) backwards; }
+  .auth-form { animation-delay: 100ms; }
+  .auth-steps li { animation: enter-content 420ms var(--ease-calm) backwards; }
+  .auth-steps li:nth-child(2) { animation-delay: 70ms; }
+  .auth-steps li:nth-child(3) { animation-delay: 140ms; }
+  .cinema-orbit span { animation: settle-orbit 1600ms var(--ease-calm) backwards; }
+  .cinema-orbit span:nth-child(2) { animation-delay: 100ms; }
+  .cinema-orbit span:nth-child(3) { animation-delay: 200ms; }
+  .cinema-hero::before { animation: settle-orbit 1000ms var(--ease-calm) backwards; }
+  .menu-reveal { transform-origin: top; animation: enter-menu 200ms var(--ease-calm) backwards; }
+  .motion-button, .motion-chip {
+    transition: background-color 180ms var(--ease-calm), color 180ms var(--ease-calm),
+      box-shadow 180ms var(--ease-calm), transform 180ms var(--ease-calm);
+  }
+  /* data-confirm is set only when aria-pressed turns true (useConfirmPulse), not on mount. */
+  .motion-button[data-confirm], .motion-chip[data-confirm] {
+    animation: confirm-selection 240ms var(--ease-calm);
+  }
+  .motion-button:active:not(:disabled), .motion-chip:active:not(:disabled) { transform: scale(0.97); }
+  .nav-link { transition: background-color 180ms var(--ease-calm), color 180ms var(--ease-calm), transform 180ms var(--ease-calm); }
+  .nav-link:active { transform: scale(0.96); }
+  .auth-form input { transition: box-shadow 200ms var(--ease-calm), background-color 200ms var(--ease-calm); }
+}
+@media (hover: hover) and (pointer: fine) and (prefers-reduced-motion: no-preference) {
+  .motion-button:hover:not(:disabled) { transform: translateY(-2px); }
+  .motion-button:active:not(:disabled) { transform: translateY(0) scale(0.97); }
+  .motion-chip:hover:not(:disabled) { transform: translateY(-1px); }
+  .motion-chip:active:not(:disabled) { transform: scale(0.97); }
+}
+/* Adapted library surfaces; see docs/ui-component-sources.md. */
+.unlumen-glow { position: relative; isolation: isolate; }
+.unlumen-glow-layer {
+  position: absolute; inset: -3px; z-index: -1; border-radius: inherit;
+  background: linear-gradient(110deg, var(--color-ember-deep), var(--color-ember), var(--color-signal-amber));
+  filter: blur(12px); opacity: 0; pointer-events: none;
+  transition: opacity 220ms var(--ease-calm), transform 220ms var(--ease-calm);
+}
+.unlumen-glow:focus-visible:not(:disabled) .unlumen-glow-layer { opacity: 0.45; }
+.skiper-link-label { position: relative; }
+.skiper-link-label::before {
+  content: ''; position: absolute; inset: auto 0 -0.2em; height: 1px; background: currentColor;
+  transform: scaleX(0); transform-origin: right;
+  transition: transform 300ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+.skiper-link-arrow { width: 0.75em; height: 0.75em; flex-shrink: 0; opacity: 0.6; transition: transform 300ms var(--ease-calm), opacity 300ms var(--ease-calm); }
+.skiper-link:is(:hover, :focus-visible) .skiper-link-label::before { transform: scaleX(1); transform-origin: left; }
+.skiper-link:is(:hover, :focus-visible) .skiper-link-arrow { opacity: 1; }
+@media (hover: hover) and (pointer: fine) {
+  .unlumen-glow:hover:not(:disabled) .unlumen-glow-layer { opacity: 0.45; }
+}
+@media (prefers-reduced-motion: no-preference) {
+  .skiper-link:is(:hover, :focus-visible) .skiper-link-arrow { transform: translate(2px, -2px); }
+}
+/* Animate the incoming glyph without translating the input or caret. */
+.animated-input { caret-color: var(--color-ember); }
+.input-letter-mask { position: fixed; z-index: 60; pointer-events: none; white-space: pre; }
+.input-letter { display: block; transform-origin: center bottom; animation: letter-arrival 180ms cubic-bezier(0.2, 0.7, 0.2, 1) both; }
+@keyframes letter-arrival {
+  from { opacity: 0; transform: translateY(6px) scale(0.78); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+@media (prefers-reduced-motion: reduce) { .input-letter-mask { display: none; } }
+@keyframes card-arrival {
+  from { opacity: 0; translate: 0 20px; scale: 0.985; }
+  to { opacity: 1; translate: 0 0; scale: 1; }
+}
+@media (prefers-reduced-motion: no-preference) {
+  .cinema-hero, .auth-form { animation-name: card-arrival; animation-duration: 600ms; }
+}
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation: none !important; transition: none !important; scroll-behavior: auto !important; }
 }
