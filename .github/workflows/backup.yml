@@ -1,0 +1,41 @@
+# Backup semanal do banco (DEC-015). O plano grátis do Supabase não tem backup automático.
+# O dump é criptografado antes de virar artefato: artefatos podem ser visíveis para quem lê o repositório.
+# Secrets necessários: SUPABASE_DB_URL (connection string do pooler) e BACKUP_PASSPHRASE.
+# Restaurar: gpg -d backup.sql.gpg > backup.sql && psql "$SUPABASE_DB_URL" -f backup.sql
+name: Backup semanal
+
+on:
+  schedule:
+    - cron: '0 6 * * 1' # segunda-feira, 06:00 UTC
+  workflow_dispatch:
+
+jobs:
+  backup:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: supabase/setup-cli@v1
+        with:
+          version: 2.120.0
+      # PENDENTE DE VALIDAÇÃO: testar uma restauração completa no primeiro backup real (inclui usuários do auth?).
+      - name: Dump (papéis, schema e dados)
+        env:
+          SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
+        run: |
+          test -n "$SUPABASE_DB_URL" || { echo "Configure o secret SUPABASE_DB_URL"; exit 1; }
+          supabase db dump --db-url "$SUPABASE_DB_URL" -f roles.sql --role-only
+          supabase db dump --db-url "$SUPABASE_DB_URL" -f schema.sql
+          supabase db dump --db-url "$SUPABASE_DB_URL" -f data.sql --data-only --use-copy
+          cat roles.sql schema.sql data.sql > backup.sql
+      - name: Criptografar
+        env:
+          BACKUP_PASSPHRASE: ${{ secrets.BACKUP_PASSPHRASE }}
+        run: |
+          test -n "$BACKUP_PASSPHRASE" || { echo "Configure o secret BACKUP_PASSPHRASE"; exit 1; }
+          gpg --batch --yes --pinentry-mode loopback --passphrase "$BACKUP_PASSPHRASE" --symmetric --cipher-algo AES256 -o backup.sql.gpg backup.sql
+          rm roles.sql schema.sql data.sql backup.sql
+      - uses: actions/upload-artifact@v4
+        with:
+          name: backup-${{ github.run_id }}
+          path: backup.sql.gpg
+          retention-days: 30
