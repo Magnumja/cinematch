@@ -3,7 +3,7 @@
 ## Visão geral
 
 ```
-                      ┌──────────────── Cloudflare Pages ────────────────┐
+                      ┌────────────────── Vercel (Hobby) ───────────────┐
                       │  web/ (React + Vite)  — só chave pública + RLS   │
                       └───────────────┬──────────────────────────────────┘
                                       │ supabase-js (JWT do usuário)
@@ -63,7 +63,7 @@ Exclusão de conta: `delete_my_account()` apaga `auth.users`; todo o resto cai e
 | Item | Custo |
 |---|---|
 | Supabase (plano grátis: 500 MB; catálogo ocupa ~25 MB) | R$ 0 |
-| Cloudflare Pages | R$ 0 |
+| Vercel Hobby (só não comercial, DEC-036) | R$ 0 |
 | GitHub Actions (CI + backup) | R$ 0 em repositório público; em privado, dentro da cota grátis (NÃO VERIFICADO) |
 | Wikidata | R$ 0 |
 | Haiku 5.5 (se ligado): ~US$ 0,0005 por pedido; 100 usuários × 40 pedidos ≈ US$ 2/mês | teto configurado em US$ 2 |

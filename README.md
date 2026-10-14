@@ -32,21 +32,35 @@ npx supabase test db     # RLS, agendamento e idempotência (pgTAP)
 node scripts/smoke-test.ts   # ponta a ponta contra o stack local (variáveis no topo do arquivo)
 ```
 
-## Publicar o beta (passos que exigem conta e decisão sua)
+## Publicar para testes (Vercel + Supabase)
 
-Nada abaixo foi executado. Todos os serviços são gratuitos nos limites do beta.
+Nada abaixo foi executado. Plano grátis em ambos; o Vercel Hobby só pode ser usado enquanto não houver uso comercial (DEC-036).
 
-1. **Supabase**: criar projeto (plano Free). `npx supabase link --project-ref <ref>` e `npx supabase db push`.
-2. **Segredos das funções**: `npx supabase secrets set CRON_SECRET=<aleatório> ALLOWED_ORIGIN=https://<seu-domínio>`.
-   Deixe `ANTHROPIC_API_KEY` vazio para manter o assistente desligado (fase R$ 0).
-3. **Vault** (SQL Editor): `select vault.create_secret('https://<ref>.supabase.co', 'project_url');` e
-   `select vault.create_secret('<mesmo CRON_SECRET>', 'cron_secret');`
-4. **Funções**: `npx supabase functions deploy recommend scheduled-run assistant`.
-   Confirmar que o deploy inclui `core/` (DEC-019).
-5. **Catálogo**: `npm run catalog:load` com a URL e a service role key do projeto (só na sua máquina).
-6. **Auth**: em Authentication → URL Configuration, apontar `Site URL` para o domínio do Cloudflare Pages.
-   Para o beta fechado, desligar cadastro aberto e convidar por e-mail.
-7. **Cloudflare Pages**: build `npm run build`, saída `dist`, variáveis `VITE_SUPABASE_URL` e `VITE_SUPABASE_ANON_KEY`.
-   O arquivo `web/public/_redirects` já faz o roteamento de SPA.
+1. **Supabase**: criar projeto (plano Free, região mais próxima dos testadores) em supabase.com.
+2. **Banco e funções** (na sua máquina, a senha do banco é digitada só no prompt):
+   ```bash
+   npx supabase login
+   npx supabase link --project-ref <ref>
+   npx supabase db push
+   npx supabase functions deploy recommend scheduled-run assistant
+   ```
+3. **Segredos das funções** (nunca no repositório nem no chat):
+   ```bash
+   npx supabase secrets set CRON_SECRET=$(openssl rand -hex 32)
+   npx supabase secrets set ALLOWED_ORIGIN=https://<seu-projeto>.vercel.app
+   npx supabase secrets set ANTHROPIC_API_KEY=<sua chave>      # assistente com Haiku (DEC-037)
+   ```
+   Teto de gasto: `AI_MONTHLY_BUDGET_USD` (padrão 2) e `AI_DAILY_LIMIT_PER_USER` (padrão 10).
+4. **Vault** (SQL Editor do Supabase), para o agendamento funcionar:
+   ```sql
+   select vault.create_secret('https://<ref>.supabase.co', 'project_url');
+   select vault.create_secret('<o mesmo CRON_SECRET>', 'cron_secret');
+   ```
+5. **Catálogo**: `npm run catalog:fetch` (se ainda não tiver `data/catalog.json`) e
+   `SUPABASE_URL=https://<ref>.supabase.co SUPABASE_SERVICE_ROLE_KEY=<service role> npm run catalog:load` — só na sua máquina.
+6. **Vercel**: importar o repositório do GitHub (o `vercel.json` já define build, saída, rotas e cabeçalhos de segurança) e
+   adicionar as variáveis `VITE_SUPABASE_URL=https://<ref>.supabase.co` e `VITE_SUPABASE_ANON_KEY=<anon key>` (são públicas).
+7. **Auth** (Supabase → Authentication → URL Configuration): `Site URL` = domínio do Vercel; em Redirect URLs, o mesmo domínio.
+   Para o beta fechado: desligar cadastro aberto e convidar testadores por e-mail; exigir confirmação de e-mail e senha forte.
 8. **Backup**: secrets `SUPABASE_DB_URL` e `BACKUP_PASSPHRASE` no GitHub para o workflow semanal.
-9. **Antes de abrir para convidados**: política de privacidade (LGPD) e validação jurídica das notas (DEC-010).
+9. **Antes de abrir para convidados**: revisar `docs/privacy-policy-draft.md` e `docs/terms-of-use-draft.md`.

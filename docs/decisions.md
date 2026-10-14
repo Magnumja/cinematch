@@ -234,6 +234,19 @@ Status possíveis:
   - Login com mensagem genérica (não revela contas); CORS falha fechado.
 - **Testes:** 107 Vitest (motor, componentes, i18n), 48 pgTAP, 11 verificações ponta a ponta.
 
+### DEC-036 — Hospedagem do frontend na fase de testes: Vercel
+- **Status:** Aprovado · **Data:** 2026-10-14
+- **Decisão:** Frontend no Vercel (plano Hobby) enquanto o projeto não tiver nenhum uso comercial. Substitui o Cloudflare Pages da DEC-014
+  (os arquivos `_headers`/`_redirects` foram trocados por `vercel.json`, com os mesmos cabeçalhos de segurança).
+- **Motivo:** preferência do responsável; o cron limitado do Hobby não afeta o app (o agendamento roda no pg_cron do Supabase).
+- **Condição:** o Hobby é restrito a uso pessoal e não comercial. **Antes de qualquer monetização**, migrar para plano pago do Vercel ou para outra hospedagem.
+
+### DEC-037 — Assistente de IA ligado com a chave do responsável
+- **Status:** Aprovado · **Data:** 2026-10-14
+- **Decisão:** Assistente ativo com Claude Haiku 5.5 (`claude-haiku-5-5`), usando a chave da API da Anthropic do responsável,
+  configurada só como segredo das Edge Functions (`supabase secrets set`), nunca no repositório nem no frontend.
+- **Limites:** 10 pedidos por usuário/dia e teto global de US$ 2/mês (`AI_DAILY_LIMIT_PER_USER`, `AI_MONTHLY_BUDGET_USD`), dentro do teto de R$ 50 (DEC-003).
+
 ## Pendências abertas
 
 | Item | Situação |
@@ -244,5 +257,5 @@ Status possíveis:
 | DEC-031 — design system | Revisar com a logo e as referências visuais |
 | Política de privacidade | Rascunho técnico em `docs/privacy-policy-draft.md`; precisa de revisão jurídica e dados do controlador |
 | Termos de uso | A redigir antes do beta |
-| Assistente com a API real da Anthropic | Código checado por tipos e com fallback testado; chamada real NÃO VERIFICADA (sem chave na fase R$ 0) |
+| Assistente com a API real da Anthropic | Código checado por tipos e com fallback testado; chamada real a validar assim que a chave for configurada (DEC-037) |
 | Familiaridade do responsável com TS/Python | Pergunta da Fase 2 sem resposta (não bloqueia) |

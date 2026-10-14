@@ -10,9 +10,9 @@ Decisões e motivos: `docs/decisions.md` (fonte da verdade). Arquitetura: `docs/
 
 ## Stack aprovada
 - TypeScript de ponta a ponta. React 19 + Vite + Tailwind v4 (`web/`). Sem biblioteca de animação (CSS).
-- Supabase: Postgres + Auth + RLS + Edge Functions (Deno) + pg_cron. Frontend estático no Cloudflare Pages.
+- Supabase: Postgres + Auth + RLS + Edge Functions (Deno) + pg_cron. Frontend estático no Vercel Hobby (`vercel.json`) na fase de testes — só uso não comercial (DEC-036).
 - Catálogo: **somente Wikidata (CC0)**. TMDB, IMDb datasets e OMDb são proibidos (licença). Notas só de Rotten Tomatoes (média x/10) e Metacritic, via Wikidata.
-- LLM: Claude Haiku 5.5 (`claude-haiku-5-5`), só no assistente, desligado sem `ANTHROPIC_API_KEY`.
+- LLM: Claude Haiku 5.5 (`claude-haiku-5-5`), só no assistente; chave da Anthropic do responsável como segredo das Edge Functions (DEC-037).
 
 ## Estrutura
 - `core/` — domínio puro (sem I/O): `schemas.ts` (Zod), `engine/` (filtros → ranking → diversidade), `explain.ts`, `assistant.ts`, `db.ts` (mapeamento de linhas).
