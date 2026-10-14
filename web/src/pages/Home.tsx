@@ -1,6 +1,6 @@
 // Home: um filme em destaque, poucas seções abaixo. Abrir a página não gera recomendação nova se já existe uma recente.
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { AnimatedLink } from '../components/skiper-ui/AnimatedLink.tsx';
 import { hardFilterReason } from '../../../core/engine/filters.ts';
 import type { Constraints, Relaxable, UserMovie } from '../../../core/schemas.ts';
 import { CompactCard, HeroCard, MovieRowItem } from '../components/MovieCard.tsx';
@@ -136,7 +136,15 @@ export default function Home() {
   const exploreMovie = exploreItem ? explore.movies.get(exploreItem.movieId) : undefined;
 
   return (
-    <div className="space-y-16">
+    <div className="space-y-12">
+      <header className="flex flex-wrap items-end justify-between gap-5">
+        <div>
+          <p className="mb-3 text-xs font-medium uppercase tracking-[0.2em] text-ember">CineMatch / {t('home.forYou')}</p>
+          <h1 className="font-display text-5xl font-bold tracking-tight sm:text-6xl">{t('home.title')}</h1>
+          <p className="mt-3 text-sm text-fog">{t('home.intro')}</p>
+        </div>
+        <AnimatedLink to="/discover" className="inline-flex min-h-11 items-center gap-4 rounded-full border border-matte px-5 text-sm hover:border-fog">{t('nav.discover')}</AnimatedLink>
+      </header>
       <section aria-live="polite">
         {loading ? (
           <HeroSkeleton label={t('home.generating')} />
@@ -166,11 +174,11 @@ export default function Home() {
       {view && rest.length > 0 && (
         <section>
           <SectionTitle>{t('home.more')}</SectionTitle>
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-            {rest.map((item) => {
+          <div className="movie-grid grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            {rest.map((item, position) => {
               const m = view.movies.get(item.movieId);
               return m ? (
-                <CompactCard key={item.movieId} item={item} movie={m} movies={view.movies} saved={saved.has(item.movieId)} onSave={() => void saveFromRec(item)} />
+                <CompactCard key={item.movieId} entranceDelay={Math.min(position, 3) * 0.08} item={item} movie={m} movies={view.movies} saved={saved.has(item.movieId)} onSave={() => void saveFromRec(item)} />
               ) : null;
             })}
           </div>
@@ -178,8 +186,9 @@ export default function Home() {
       )}
 
       <section className="grid gap-12 lg:grid-cols-[1fr_1fr]">
-        <div>
+        <div className="explore-panel rounded-2xl border border-matte p-6">
           <SectionTitle>{t('home.different')}</SectionTitle>
+          <p className="mb-6 max-w-sm text-sm leading-relaxed text-fog">{t('home.exploreIntro')}</p>
           {exploreItem && exploreMovie && explore ? (
             <CompactCard item={exploreItem} movie={exploreMovie} movies={explore.movies} saved={saved.has(exploreItem.movieId)} onSave={() => void saveFromRec(exploreItem)} />
           ) : (
@@ -189,7 +198,7 @@ export default function Home() {
           )}
         </div>
         <div>
-          <SectionTitle action={<Link to="/list" className="text-sm text-fog hover:text-paper">{t('home.seeList')}</Link>}>{t('home.saved')}</SectionTitle>
+          <SectionTitle action={<AnimatedLink to="/list" className="text-sm text-fog hover:text-paper">{t('home.seeList')}</AnimatedLink>}>{t('home.saved')}</SectionTitle>
           {savedEntries.length === 0 ? (
             <p className="text-fog">{t('home.savedEmpty')}</p>
           ) : (

@@ -1,3 +1,4 @@
+import { AnimatedInput } from '../components/AnimatedInput.tsx';
 // Perfil: preferências explícitas editáveis, preferências aprendidas visíveis, agenda e conta (LGPD).
 import { useEffect, useState, type ReactNode } from 'react';
 import { GENRE_LABELS, type Genre } from '../../../core/domain/genres.ts';
@@ -162,7 +163,7 @@ export default function Profile() {
           <div className="rounded-2xl p-5 ring-1 ring-signal-red/30">
             <label className="block text-sm text-fog">
               {t('profile.deleteConfirm')}
-              <input
+              <AnimatedInput
                 value={confirmText}
                 onChange={(e) => setConfirmText(e.target.value)}
                 className="mt-2 block w-full max-w-xs rounded-xl bg-graphite px-4 py-2.5 text-paper ring-1 ring-matte focus:outline-none"

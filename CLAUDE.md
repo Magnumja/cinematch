@@ -9,7 +9,7 @@ Decisões e motivos: `docs/decisions.md` (fonte da verdade). Arquitetura: `docs/
 - Nunca apresentar dado simulado como real. Nunca inventar nota, duração, disponibilidade ou filme.
 
 ## Stack aprovada
-- TypeScript de ponta a ponta. React 19 + Vite + Tailwind v4 (`web/`). Sem biblioteca de animação (CSS).
+- TypeScript de ponta a ponta. React 19 + Vite + Tailwind v4 (`web/`). CSS para transições simples; Motion para componentes Unlumen UI (integração solicitada pelo responsável; ver `docs/ui-component-sources.md`).
 - Supabase: Postgres + Auth + RLS + Edge Functions (Deno) + pg_cron. Frontend estático no Vercel Hobby (`vercel.json`) na fase de testes — só uso não comercial (DEC-036).
 - Catálogo: **somente Wikidata (CC0)**. TMDB, IMDb datasets e OMDb são proibidos (licença). Notas só de Rotten Tomatoes (média x/10) e Metacritic, via Wikidata.
 - LLM: Claude Haiku 5.5 (`claude-haiku-5-5`), só no assistente; chave da Anthropic do responsável como segredo das Edge Functions (DEC-037).

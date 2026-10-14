@@ -2,7 +2,7 @@
 import { fireEvent, screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 import { renderWithProviders } from '../test-utils.tsx';
-import { GenreChip, NoMatch } from './ui.tsx';
+import { Button, GenreChip, NoMatch } from './ui.tsx';
 
 describe('NoMatch', () => {
   it('lista cada restrição liberável com o rótulo e quantos filmes passariam', () => {
@@ -80,5 +80,28 @@ describe('GenreChip', () => {
     renderWithProviders(<GenreChip genre="thriller" state="off" onClick={onClick} />);
     fireEvent.click(screen.getByRole('button', { name: 'Suspense' }));
     expect(onClick).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe('pulso de confirmação', () => {
+  it('não pulsa um botão que já monta pressionado; pulsa só quando passa a pressionado', () => {
+    const { rerender } = renderWithProviders(<Button aria-pressed={true}>Salvo</Button>);
+    expect(screen.getByRole('button', { name: 'Salvo' })).not.toHaveAttribute('data-confirm');
+    rerender(<Button aria-pressed={false}>Salvar</Button>);
+    expect(screen.getByRole('button', { name: 'Salvar' })).not.toHaveAttribute('data-confirm');
+    rerender(<Button aria-pressed={true}>Salvo</Button>);
+    const saved = screen.getByRole('button', { name: 'Salvo' });
+    expect(saved).toHaveAttribute('data-confirm');
+    // jsdom has no AnimationEvent, so React listens for the prefixed name.
+    fireEvent(saved, new Event('webkitAnimationEnd', { bubbles: true }));
+    expect(saved).not.toHaveAttribute('data-confirm');
+  });
+
+  it('chip de gênero também pulsa só na transição', () => {
+    const { rerender } = renderWithProviders(<GenreChip genre="thriller" state="on" onClick={() => {}} />);
+    expect(screen.getByRole('button')).not.toHaveAttribute('data-confirm');
+    rerender(<GenreChip genre="thriller" state="off" onClick={() => {}} />);
+    rerender(<GenreChip genre="thriller" state="on" onClick={() => {}} />);
+    expect(screen.getByRole('button')).toHaveAttribute('data-confirm');
   });
 });

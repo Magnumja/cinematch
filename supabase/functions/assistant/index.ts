@@ -65,7 +65,9 @@ Deno.serve(async (req) => {
     // A saída é validada aqui embaixo, depois de registrar os tokens.
     response = await client.messages.create({
       model: ASSISTANT_MODEL,
-      max_tokens: 600,
+      // O Haiku 5.5 pensa por padrão e o raciocínio conta dentro de max_tokens: com folga curta demais,
+      // ele esgota antes do JSON. 1500 tokens de saída custam no máximo ~US$ 0,00075 por pedido.
+      max_tokens: 1500,
       output_config: { effort: 'low', format: zodOutputFormat(ExtractedRequestSchema) },
       system: ASSISTANT_SYSTEM_PROMPT,
       messages: [{ role: 'user', content: buildUserPrompt(parsed.data.message) }],

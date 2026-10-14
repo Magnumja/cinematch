@@ -1,5 +1,6 @@
 // Peças pequenas e reutilizáveis da interface.
-import type { ButtonHTMLAttributes, ReactNode } from 'react';
+import { GlowButton } from './unlumen-ui/GlowButton.tsx';
+import { useEffect, useRef, useState, type AnimationEvent, type ButtonHTMLAttributes, type ReactNode } from 'react';
 import { GENRE_HUES, GENRE_LABELS, type Genre } from '../../../core/domain/genres.ts';
 import type { Movie, Relaxable } from '../../../core/schemas.ts';
 import { useI18n } from '../lib/i18n.tsx';
@@ -20,11 +21,29 @@ const variants: Record<Variant, string> = {
   danger: 'text-signal-red ring-1 ring-signal-red/40 hover:bg-signal-red/10',
 };
 
-export function Button({ variant = 'quiet', className = '', ...props }: ButtonHTMLAttributes<HTMLButtonElement> & { variant?: Variant }) {
+// Pulse once when a toggle turns on, never when it mounts already pressed (e.g. a saved film).
+export function useConfirmPulse(pressed: boolean) {
+  const was = useRef(pressed);
+  const [confirm, setConfirm] = useState(false);
+  useEffect(() => {
+    if (pressed !== was.current) setConfirm(pressed);
+    was.current = pressed;
+  }, [pressed]);
+  return {
+    'data-confirm': confirm || undefined,
+    onAnimationEnd: (e: AnimationEvent<HTMLButtonElement>) => { if (e.target === e.currentTarget) setConfirm(false); },
+  };
+}
+
+export function Button({ variant = 'quiet', className = '', onAnimationEnd, ...props }: ButtonHTMLAttributes<HTMLButtonElement> & { variant?: Variant }) {
+  const Component = variant === 'primary' ? GlowButton : 'button';
+  const pulse = useConfirmPulse(props['aria-pressed'] === true || props['aria-pressed'] === 'true');
   return (
-    <button
+    <Component
       {...props}
-      className={`inline-flex items-center justify-center gap-2 rounded-full px-4 py-2 text-sm font-medium transition-[background-color,color,box-shadow,transform] duration-200 ease-(--ease-calm) active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50 ${variants[variant]} ${className}`}
+      data-confirm={pulse['data-confirm']}
+      onAnimationEnd={e => { pulse.onAnimationEnd(e); onAnimationEnd?.(e); }}
+      className={`motion-button inline-flex min-h-11 items-center justify-center gap-2 rounded-full px-4 py-2 text-sm font-medium transition-[background-color,color,box-shadow,transform] duration-200 ease-(--ease-calm) active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50 ${variants[variant]} ${className}`}
     />
   );
 }
@@ -40,13 +59,15 @@ export function GenreChip({ genre, state, onClick, labels }: { genre: Genre; sta
         ? 'bg-signal-red/10 text-fog line-through decoration-signal-red/70 ring-signal-red/40'
         : 'text-fog ring-matte hover:text-paper hover:ring-fog/40';
   const stateLabel = state === 'on' ? labels?.on : state === 'negative' ? labels?.negative : undefined;
+  const pulse = useConfirmPulse(state !== 'off');
   return (
     <button
       type="button"
+      {...pulse}
       onClick={onClick}
       aria-pressed={state !== 'off'}
       aria-label={stateLabel ? `${GENRE_LABELS[genre][locale]}: ${stateLabel}` : GENRE_LABELS[genre][locale]}
-      className={`rounded-full px-3.5 py-1.5 text-sm ring-1 transition-colors duration-200 ${style}`}
+      className={`motion-chip min-h-11 rounded-full px-3.5 py-1.5 text-sm ring-1 transition-colors duration-200 ${style}`}
     >
       {GENRE_LABELS[genre][locale]}
     </button>
