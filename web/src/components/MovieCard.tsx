@@ -3,7 +3,7 @@ import { useState, type ReactNode } from 'react';
 import { Link } from 'react-router-dom';
 import { displayTitle } from '../../../core/db.ts';
 import { GENRE_HUES, GENRE_LABELS, type Genre } from '../../../core/domain/genres.ts';
-import { averageRating } from '../../../core/engine/filters.ts';
+import { averageRating, formatRating } from '../../../core/engine/filters.ts';
 import { explain } from '../../../core/explain.ts';
 import { FEEDBACK_TAGS, type FeedbackTag, type Movie } from '../../../core/schemas.ts';
 import type { Feedback, RecItem } from '../lib/api.ts';
@@ -41,7 +41,7 @@ export function MovieMeta({ movie, size = 'sm' }: { movie: Movie; size?: 'sm' | 
         <dt className="sr-only">Nota</dt>
         <dd className={avg !== null ? 'text-paper' : ''}>
           {avg !== null
-            ? t('movie.ratingFrom', { value: avg.toFixed(1), sources: movie.ratings.map((r) => SOURCE_NAMES[r.source]).join(', ') })
+            ? t('movie.ratingFrom', { value: formatRating(avg), sources: movie.ratings.map((r) => SOURCE_NAMES[r.source]).join(', ') })
             : t('movie.noRating')}
         </dd>
       </div>
@@ -65,12 +65,19 @@ export function FeedbackBar({ onFeedback, current }: { onFeedback: (f: Feedback,
   const [given, setGiven] = useState<Feedback | null>(current);
   const [tags, setTags] = useState<FeedbackTag[]>([]);
   const [busy, setBusy] = useState(false);
+  const [failed, setFailed] = useState(false);
 
-  async function send(f: Feedback, nextTags = tags) {
+  // Falha ao gravar não pode sumir em silêncio: mostra aviso e não marca a opção.
+  async function send(f: Feedback, nextTags = tags): Promise<boolean> {
     setBusy(true);
+    setFailed(false);
     try {
       await onFeedback(f, nextTags);
       setGiven(f);
+      return true;
+    } catch {
+      setFailed(true);
+      return false;
     } finally {
       setBusy(false);
     }
@@ -105,10 +112,9 @@ export function FeedbackBar({ onFeedback, current }: { onFeedback: (f: Feedback,
                   type="button"
                   aria-pressed={on}
                   disabled={busy}
-                  onClick={() => {
+                  onClick={async () => {
                     const next = on ? tags.filter((x) => x !== tag) : [...tags, tag];
-                    setTags(next);
-                    void send(given, next);
+                    if (await send(given, next)) setTags(next);
                   }}
                   className={`rounded-full px-3 py-1 text-xs ring-1 transition-colors ${on ? 'text-paper ring-ember/60' : 'text-fog ring-matte hover:text-paper'}`}
                 >
@@ -119,10 +125,17 @@ export function FeedbackBar({ onFeedback, current }: { onFeedback: (f: Feedback,
           </div>
         </div>
       )}
-      {given && given !== 'skipped' && (
-        <p className="text-sm text-fog" role="status">
-          {t('fb.thanks')}
+      {failed ? (
+        <p className="text-sm text-signal-red" role="alert">
+          {t('fb.failed')}
         </p>
+      ) : (
+        given &&
+        given !== 'skipped' && (
+          <p className="text-sm text-fog" role="status">
+            {t('fb.thanks')}
+          </p>
+        )
       )}
     </div>
   );

@@ -17,6 +17,9 @@ export interface RecommendInput {
   states: readonly UserMovie[];
   // Favoritos e filmes com interação, para similaridade e aprendizado implícito.
   referenceMovies: readonly Movie[];
+  // Filmes citados só neste pedido ("parecido com X"): guiam a similaridade, nunca são recomendados
+  // e nunca aparecem como histórico do usuário.
+  requestReferences?: readonly Movie[];
   context?: ContextInput;
   limit?: number;
 }
@@ -48,9 +51,12 @@ export function diversify(ranked: readonly Scored[], limit: number): Scored[] {
 export function recommend(input: RecommendInput): RecommendationResult {
   const context = ContextSchema.parse(input.context ?? {});
   const limit = input.limit ?? 5;
-  const constraints = mergeConstraints(input.profile.constraints, context.constraints);
+  const merged = mergeConstraints(input.profile.constraints, context.constraints);
+  // "Hoje não" (avoidGenres) é filtro deste pedido, não só penalidade (DEC-034).
+  const constraints = { ...merged, excludedGenres: [...new Set([...merged.excludedGenres, ...context.avoidGenres])] };
   const states = new Map(input.states.map((s) => [s.movieId, s]));
-  const sessionExcluded = new Set(context.excludeMovieIds);
+  const requested = input.requestReferences ?? [];
+  const sessionExcluded = new Set([...context.excludeMovieIds, ...requested.map((m) => m.id)]);
 
   const { eligible, rejected } = applyHardFilters(input.candidates, constraints, states, sessionExcluded);
 
@@ -66,7 +72,7 @@ export function recommend(input: RecommendInput): RecommendationResult {
     return { ...base, items: [], relaxations: suggestRelaxations(input.candidates, constraints, states, sessionExcluded) };
   }
 
-  const signals = deriveSignals(input.profile.preferences, input.states, input.referenceMovies);
+  const signals = deriveSignals(input.profile.preferences, input.states, input.referenceMovies, requested);
   const maxPopularity = eligible.reduce((max, m) => Math.max(max, m.popularity), 0);
   const ranked = eligible
     .map((m) => scoreMovie(m, signals, context, maxPopularity))

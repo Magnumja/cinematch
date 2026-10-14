@@ -68,7 +68,13 @@ export default function Profile() {
   }
 
   async function download() {
-    const json = await exportMyData(userId);
+    let json: string;
+    try {
+      json = await exportMyData();
+    } catch {
+      setStatus('error');
+      return;
+    }
     const url = URL.createObjectURL(new Blob([json], { type: 'application/json' }));
     const a = document.createElement('a');
     a.href = url;

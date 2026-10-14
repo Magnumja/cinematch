@@ -17,6 +17,10 @@ export const WEIGHTS_V1 = {
   explore: 0.25,
 } as const;
 
+// "Um dos mais conhecidos" só é dito para o topo real do catálogo: percentil 95 de sitelinks
+// do catálogo carregado em 2026-10-14 (p50 = 11, p95 = 39). Recalibrar ao recarregar o catálogo.
+export const WELL_KNOWN_SITELINKS = 39;
+
 // Abaixo disso o histórico é ruído demais para virar preferência implícita.
 export const MIN_INTERACTIONS_FOR_LEARNING = 3;
 const MIN_FACTOR = 0.02;
@@ -28,12 +32,15 @@ export interface UserSignals {
   learned: ReadonlyMap<Genre, number>;
   // Filmes de referência para similaridade: favoritos e filmes que o usuário curtiu.
   references: readonly Movie[];
+  // Filmes citados só no pedido atual ("parecido com X"). Não são histórico.
+  requested: readonly Movie[];
 }
 
 export function deriveSignals(
   preferences: Preferences,
   states: readonly UserMovie[],
   referenceMovies: readonly Movie[],
+  requested: readonly Movie[] = [],
 ): UserSignals {
   const byId = new Map(referenceMovies.map((m) => [m.id, m]));
   const raw = new Map<Genre, number>();
@@ -68,6 +75,7 @@ export function deriveSignals(
     disliked: new Set(preferences.dislikedGenres),
     learned,
     references,
+    requested,
   };
 }
 
@@ -128,16 +136,23 @@ export function scoreMovie(movie: Movie, signals: UserSignals, context: Context,
     if (learnedC >= MIN_FACTOR && positive.length > 0) factors.push({ type: 'learned_genres', genres: positive, weight: round(learnedC) });
   }
 
-  let best: ReturnType<typeof movieSimilarity> & { id: string } = { value: 0, sharedDirector: null, sharedGenres: [], id: '' };
-  for (const ref of signals.references) {
+  type Best = ReturnType<typeof movieSimilarity> & { id: string; source: 'history' | 'request' };
+  let best: Best = { value: 0, sharedDirector: null, sharedGenres: [], id: '', source: 'history' };
+  const refs = [
+    ...signals.references.map((m) => ({ m, source: 'history' as const })),
+    ...signals.requested.map((m) => ({ m, source: 'request' as const })),
+  ];
+  for (const { m: ref, source } of refs) {
     if (ref.id === movie.id) continue;
     const sim = movieSimilarity(movie, ref);
-    if (sim.value > best.value) best = { ...sim, id: ref.id };
+    if (sim.value > best.value) best = { ...sim, id: ref.id, source };
   }
   const simC = best.value * w.similarity;
   score += simC;
   if (simC >= MIN_FACTOR) {
-    factors.push({ type: 'similar_to', movieId: best.id, sharedDirector: best.sharedDirector, sharedGenres: best.sharedGenres, weight: round(simC) });
+    factors.push({
+      type: 'similar_to', movieId: best.id, sharedDirector: best.sharedDirector, sharedGenres: best.sharedGenres, source: best.source, weight: round(simC),
+    });
   }
 
   const avg = averageRating(movie);
@@ -145,12 +160,13 @@ export function scoreMovie(movie: Movie, signals: UserSignals, context: Context,
   const ratingC = (avg === null ? 0.5 : avg / 10) * w.rating;
   score += ratingC;
   if (avg !== null && avg >= 7) {
-    factors.push({ type: 'rating', average: avg, sources: movie.ratings.map((r) => r.source), weight: round(ratingC) });
+    factors.push({ type: 'rating', average: Math.round(avg * 10) / 10, sources: movie.ratings.map((r) => r.source), weight: round(ratingC) });
   }
 
   const popC = maxPopularity > 0 ? (Math.log1p(movie.popularity) / Math.log1p(maxPopularity)) * w.popularity : 0;
   score += popC;
-  if (popC >= MIN_FACTOR) factors.push({ type: 'popularity', weight: round(popC) });
+  // A popularidade sempre pesa na pontuação, mas só vira motivo para filmes realmente conhecidos.
+  if (movie.popularity >= WELL_KNOWN_SITELINKS && popC >= MIN_FACTOR) factors.push({ type: 'popularity', weight: round(popC) });
 
   if (context.preferGenres.length > 0 || context.avoidGenres.length > 0) {
     const prefer = share(movie.genres, context.preferGenres);

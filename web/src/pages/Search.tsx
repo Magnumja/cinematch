@@ -18,8 +18,16 @@ export default function Search() {
       setResults(null);
       return;
     }
-    const handle = setTimeout(() => void searchMovies(query, 30).then(setResults).catch(() => setResults([])), 250);
-    return () => clearTimeout(handle);
+    let cancelled = false;
+    const handle = setTimeout(() => {
+      searchMovies(query, 30)
+        .then((r) => !cancelled && setResults(r))
+        .catch(() => !cancelled && setResults([]));
+    }, 250);
+    return () => {
+      cancelled = true;
+      clearTimeout(handle);
+    };
   }, [query]);
 
   return (

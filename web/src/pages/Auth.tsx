@@ -32,7 +32,7 @@ export default function Auth() {
         : await supabase.auth.signUp({ email, password, options: { emailRedirectTo: redirectTo } });
     setBusy(false);
     // Mensagem do Supabase Auth (ex.: credenciais inválidas, senha curta) é específica e acionável.
-    if (error) setMessage({ kind: 'error', text: error.message });
+    if (error) setMessage({ kind: 'error', text: mode === 'signIn' ? t('auth.invalid') : error.message });
     else if (mode === 'signUp' && !data.session) setMessage({ kind: 'info', text: t('auth.checkEmail') });
   }
 

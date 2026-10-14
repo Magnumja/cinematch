@@ -6,7 +6,8 @@ import { z } from 'zod';
 import {
   ASSISTANT_MODEL,
   ASSISTANT_SYSTEM_PROMPT,
-  estimateCostUsd,
+  buildUserPrompt,
+  clampClarification,
   ExtractedRequestSchema,
   MAX_REQUEST_CHARS,
   toContext,
@@ -16,9 +17,14 @@ import { CORS_HEADERS, generateAndStore, json, serviceClient, userIdFromRequest 
 const DAILY_LIMIT = Number(Deno.env.get('AI_DAILY_LIMIT_PER_USER') ?? 10);
 const MONTHLY_BUDGET_USD = Number(Deno.env.get('AI_MONTHLY_BUDGET_USD') ?? 2);
 
+async function addTokens(db: ReturnType<typeof serviceClient>, userId: string, input: number, output: number): Promise<void> {
+  const { error } = await db.rpc('add_ai_tokens', { p_user_id: userId, p_input: input, p_output: output });
+  if (error) console.error('ai token accounting failed', { userId, error: error.message });
+}
+
 const BodySchema = z.object({
   message: z.string().trim().min(3).max(MAX_REQUEST_CHARS),
-  excludeMovieIds: z.array(z.string()).max(50).default([]),
+  excludeMovieIds: z.array(z.string().regex(/^Q\d{1,15}$/)).max(500).default([]),
 });
 
 Deno.serve(async (req) => {
@@ -35,27 +41,34 @@ Deno.serve(async (req) => {
   const parsed = BodySchema.safeParse(await req.json().catch(() => ({})));
   if (!parsed.success) return json({ error: 'invalid_body' }, 400);
 
-  // Limites antes de gastar: por usuário/dia e teto global do mês.
-  const today = new Date().toISOString().slice(0, 10);
-  const monthStart = `${today.slice(0, 7)}-01`;
-  const [{ data: mine }, { data: month, error: monthError }] = await Promise.all([
-    db.from('ai_usage').select('requests').eq('user_id', userId).eq('day', today).maybeSingle(),
-    db.from('ai_usage').select('input_tokens,output_tokens').gte('day', monthStart),
-  ]);
-  if (monthError) return json({ error: 'internal_error' }, 500);
-  if ((mine?.requests ?? 0) >= DAILY_LIMIT) return json({ error: 'daily_limit_reached', limit: DAILY_LIMIT }, 429);
-  const spent = (month ?? []).reduce((acc, r) => acc + estimateCostUsd(r.input_tokens, r.output_tokens), 0);
-  if (spent >= MONTHLY_BUDGET_USD) return json({ error: 'monthly_budget_reached' }, 503);
+  // Reserva atômica ANTES de gastar (limite por usuário/dia e teto global do mês, somado no banco).
+  const { data: reservation, error: reserveError } = await db.rpc('reserve_ai_request', {
+    p_user_id: userId,
+    p_daily_limit: DAILY_LIMIT,
+    p_budget_usd: MONTHLY_BUDGET_USD,
+  });
+  if (reserveError) {
+    console.error('ai reservation failed', { userId, error: reserveError.message });
+    return json({ error: 'internal_error' }, 500);
+  }
+  if (reservation === 'daily') return json({ error: 'daily_limit_reached', limit: DAILY_LIMIT }, 429);
+  if (reservation === 'budget') return json({ error: 'monthly_budget_reached' }, 503);
+  if (reservation !== 'ok') {
+    console.error('ai reservation unexpected result', { userId });
+    return json({ error: 'internal_error' }, 500);
+  }
 
   const client = new Anthropic({ apiKey, maxRetries: 1, timeout: 20_000 });
   let response;
   try {
-    response = await client.messages.parse({
+    // create (não parse): o parse do SDK lança erro em saída inválida e perderíamos o usage.
+    // A saída é validada aqui embaixo, depois de registrar os tokens.
+    response = await client.messages.create({
       model: ASSISTANT_MODEL,
-      max_tokens: 2000,
+      max_tokens: 600,
       output_config: { effort: 'low', format: zodOutputFormat(ExtractedRequestSchema) },
       system: ASSISTANT_SYSTEM_PROMPT,
-      messages: [{ role: 'user', content: `<request>\n${parsed.data.message}\n</request>` }],
+      messages: [{ role: 'user', content: buildUserPrompt(parsed.data.message) }],
     });
   } catch (err) {
     if (err instanceof Anthropic.RateLimitError) return json({ error: 'assistant_busy' }, 503);
@@ -67,23 +80,26 @@ Deno.serve(async (req) => {
     throw err;
   }
 
-  // Registra consumo mesmo quando a saída é inútil: o custo existiu.
-  await db.rpc('record_ai_usage', {
-    p_user_id: userId,
-    p_input: response.usage.input_tokens,
-    p_output: response.usage.output_tokens,
-  });
+  // Registra os tokens antes de qualquer validação: mesmo saída inútil teve custo.
+  await addTokens(db, userId, response.usage.input_tokens, response.usage.output_tokens);
 
   if (response.stop_reason === 'refusal') return json({ kind: 'off_topic' });
-  if (response.stop_reason === 'max_tokens' || !response.parsed_output) return json({ error: 'assistant_unparseable' }, 502);
+  if (response.stop_reason === 'max_tokens') return json({ error: 'assistant_unparseable' }, 502);
 
-  // Revalidação local: nunca confiar só no formato do provedor.
-  const check = ExtractedRequestSchema.safeParse(response.parsed_output);
+  // Validação local: nunca confiar só no formato do provedor.
+  const text = response.content.find((b): b is Anthropic.TextBlock => b.type === 'text')?.text;
+  let raw: unknown = null;
+  try {
+    raw = text ? JSON.parse(text) : null;
+  } catch {
+    raw = null;
+  }
+  const check = ExtractedRequestSchema.safeParse(raw);
   if (!check.success) return json({ error: 'assistant_unparseable' }, 502);
   const extracted = check.data;
 
   if (extracted.intent === 'off_topic') return json({ kind: 'off_topic' });
-  if (extracted.intent === 'clarify') return json({ kind: 'clarify', question: extracted.clarificationQuestion });
+  if (extracted.intent === 'clarify') return json({ kind: 'clarify', question: clampClarification(extracted.clarificationQuestion) });
 
   // "Parecido com X": resolvemos o título no NOSSO catálogo; se não existir, não fingimos que existe.
   let similarTo: { id: string; titlePt: string | null; titleEn: string | null } | null = null;
@@ -102,7 +118,7 @@ Deno.serve(async (req) => {
     const out = await generateAndStore(db, userId, {
       kind: 'assistant',
       context: { ...toContext(extracted), excludeMovieIds: parsed.data.excludeMovieIds },
-      extraFavoriteIds: similarTo ? [similarTo.id] : [],
+      requestReferenceIds: similarTo ? [similarTo.id] : [],
     });
     return json({
       kind: 'recommendation',

@@ -46,7 +46,8 @@ Não vendemos dados e não compartilhamos para publicidade.
 
 - Enquanto sua conta existir.
 - Ao apagar a conta, todos os dados vinculados são removidos imediatamente do banco principal.
-- Cópias de segurança criptografadas são descartadas automaticamente em até 30 dias.
+- Cópias de segurança criptografadas (backups) ficam guardadas por até 30 dias e depois são descartadas automaticamente; uma conta apagada some delas nesse prazo.
+- Logs técnicos das funções do servidor (usados para investigar erros) guardam o identificador interno da sua conta — nunca o e-mail, o texto do assistente ou suas listas — por [prazo de retenção de logs do provedor — NÃO VERIFICADO], e depois são apagados pelo provedor.
 
 ## 6. Seus direitos (LGPD, art. 18)
 

@@ -51,7 +51,8 @@ export default function Assistant() {
   const [busy, setBusy] = useState(false);
   const [disabled, setDisabled] = useState(false);
 
-  const shownIds = turns.flatMap((turn) => (turn.reply.kind === 'recommendation' ? turn.reply.view.items.map((i) => i.movieId) : []));
+  // O servidor aceita até 500 ids; mandamos só os 300 mais recentes (turnos ficam em ordem decrescente).
+  const shownIds = turns.flatMap((turn) => (turn.reply.kind === 'recommendation' ? turn.reply.view.items.map((i) => i.movieId) : [])).slice(0, 300);
   const push = (question: string, reply: Reply) => setTurns((ts) => [{ id: Date.now(), question, reply }, ...ts]);
 
   async function submit(e: FormEvent) {
@@ -77,7 +78,7 @@ export default function Assistant() {
     try {
       const ctx = turn.reply.interpreted;
       const nextCtx: ContextInput = { ...ctx, constraints: { ...ctx.constraints, ...relaxToContext(c) }, excludeMovieIds: shownIds };
-      const view: RecView = await requestRecommendation('on_demand', nextCtx);
+      const view: RecView = await requestRecommendation('assistant', nextCtx, 5, turn.reply.similarTo?.id);
       push(`${turn.question} (${t(`relax.${c}`).toLowerCase()})`, { ...turn.reply, interpreted: nextCtx, view });
     } catch {
       push(turn.question, { kind: 'error', message: t('error.generic') });

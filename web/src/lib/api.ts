@@ -92,8 +92,13 @@ export function relaxToContext(c: Relaxable): Partial<Constraints> {
 }
 
 // on_demand = recomendação principal da Home; discover = busca pontual com filtros (nunca vira a principal).
-export async function requestRecommendation(kind: 'on_demand' | 'discover' | 'explore', context?: ContextInput, limit = 5): Promise<RecView> {
-  return toView(kind, await invoke<FunctionRecResponse>('recommend', { kind, context, limit }));
+export async function requestRecommendation(
+  kind: 'on_demand' | 'discover' | 'explore' | 'assistant',
+  context?: ContextInput,
+  limit = 5,
+  similarToId?: string,
+): Promise<RecView> {
+  return toView(kind, await invoke<FunctionRecResponse>('recommend', { kind, context, limit, similarToId }));
 }
 
 export interface SimilarTo {
@@ -265,6 +270,18 @@ export async function listUserMovies(userId: string): Promise<UserMovieEntry[]> 
   }));
 }
 
+// Estado atual de filmes específicos (para revalidar uma recomendação gravada antes).
+export async function statesFor(userId: string, movieIds: string[]): Promise<Map<string, UserMovie>> {
+  if (movieIds.length === 0) return new Map();
+  const { data, error } = await supabase
+    .from('user_movies')
+    .select('movie_id,watched,watchlist,sentiment,not_interested,tags')
+    .eq('user_id', userId)
+    .in('movie_id', movieIds);
+  if (error) throw error;
+  return new Map((data as UserMovieRow[]).map((r) => [r.movie_id, rowToUserMovie(r)]));
+}
+
 export async function updateUserMovie(userId: string, movieId: string, patch: Partial<Omit<UserMovie, 'movieId'>>): Promise<void> {
   const row: Record<string, unknown> = { user_id: userId, movie_id: movieId };
   if (patch.watched !== undefined) row.watched = patch.watched;
@@ -290,12 +307,14 @@ export async function giveFeedback(userId: string, item: RecItem, feedback: Feed
     const { error } = await q;
     if (error) throw error;
   }
+  // Cada feedback grava o estado completo que ele implica, desfazendo o anterior
+  // (ex.: "Gostei" por engano corrigido para "Sem interesse" não deixa sentiment = 1 para trás).
   const patches: Record<Feedback, Partial<Omit<UserMovie, 'movieId'>> | null> = {
-    liked: { sentiment: 1, watched: true },
-    disliked: { sentiment: -1, watched: true },
-    want: { watchlist: true },
-    not_interested: { notInterested: true },
-    watched: { watched: true },
+    liked: { sentiment: 1, watched: true, notInterested: false },
+    disliked: { sentiment: -1, watched: true, notInterested: false },
+    want: { watchlist: true, notInterested: false },
+    not_interested: { notInterested: true, sentiment: 0, watchlist: false },
+    watched: { watched: true, sentiment: 0, notInterested: false },
     skipped: null,
   };
   const patch = patches[feedback];
@@ -351,18 +370,11 @@ export async function saveSchedule(userId: string, s: Omit<Schedule, 'nextRunAt'
 
 // ---------------------------------------------------------------- Conta (LGPD)
 
-export async function exportMyData(userId: string): Promise<string> {
-  const [profile, movies, schedule, recs] = await Promise.all([
-    supabase.from('profiles').select('*').eq('user_id', userId).single(),
-    supabase.from('user_movies').select('*').eq('user_id', userId),
-    supabase.from('recommendation_schedules').select('*').eq('user_id', userId),
-    supabase.from('recommendations').select('*,recommendation_items(*)').eq('user_id', userId),
-  ]);
-  return JSON.stringify(
-    { exportedAt: new Date().toISOString(), profile: profile.data, movies: movies.data, schedule: schedule.data, recommendations: recs.data },
-    null,
-    2,
-  );
+// Exportação completa (LGPD art. 18) agregada no servidor: sem o corte de 1000 linhas e falhando alto.
+export async function exportMyData(): Promise<string> {
+  const { data, error } = await supabase.rpc('export_my_data');
+  if (error) throw error;
+  return JSON.stringify(data, null, 2);
 }
 
 export async function deleteMyAccount(): Promise<void> {

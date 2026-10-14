@@ -81,8 +81,13 @@ export function ErrorState({ message, onRetry }: { message: string; onRetry?: ()
 }
 
 // Nenhum filme passou nos filtros: explica e deixa o usuário escolher o que liberar (nunca automático).
-export function NoMatch({ relaxations, onRelax }: { relaxations: { constraint: Relaxable; wouldMatch: number }[]; onRelax: (c: Relaxable) => void }) {
-  const { t } = useI18n();
+export function NoMatch({ relaxations, onRelax, disabled = false }: {
+  relaxations: { constraint: Relaxable; wouldMatch: number }[];
+  onRelax: (c: Relaxable) => void;
+  disabled?: boolean;
+}) {
+  const { t, locale } = useI18n();
+  const fmt = new Intl.NumberFormat(locale === 'pt' ? 'pt-BR' : 'en');
   return (
     <div className="rounded-2xl bg-graphite/70 p-6 ring-1 ring-matte sm:p-8">
       <p className="font-display text-3xl font-semibold tracking-tight text-paper">{t('empty.title')}</p>
@@ -91,9 +96,9 @@ export function NoMatch({ relaxations, onRelax }: { relaxations: { constraint: R
           <p className="mt-3 max-w-prose text-fog">{t('empty.body')}</p>
           <div className="mt-5 flex flex-wrap gap-2">
             {relaxations.map((r) => (
-              <Button key={r.constraint} onClick={() => onRelax(r.constraint)}>
+              <Button key={r.constraint} disabled={disabled} onClick={() => onRelax(r.constraint)}>
                 {t(`relax.${r.constraint}`)}
-                <span className="text-fog">{t('relax.count', { n: r.wouldMatch.toLocaleString() })}</span>
+                <span className="text-fog">{t('relax.count', { n: fmt.format(r.wouldMatch) })}</span>
               </Button>
             ))}
           </div>

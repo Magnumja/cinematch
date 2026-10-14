@@ -1,10 +1,16 @@
 // Filtros obrigatórios. Rodam ANTES do ranking: um filme reprovado aqui nunca é pontuado.
 import type { Constraints, HardFilterReason, Movie, Relaxable, UserMovie } from '../schemas.ts';
 
+// Arredondamento único para EXIBIR nota (card, motivos): 8,45 → "8.5" em todo lugar.
+export function formatRating(avg: number): string {
+  return (Math.round(avg * 10) / 10).toFixed(1);
+}
+
+// Média exata (3 casas) usada nos filtros: 7,449 NÃO passa em "7,5+". A interface arredonda só para exibir.
 export function averageRating(movie: Movie): number | null {
   if (movie.ratings.length === 0) return null;
   const sum = movie.ratings.reduce((acc, r) => acc + r.value, 0);
-  return Math.round((sum / movie.ratings.length) * 10) / 10;
+  return Math.round((sum / movie.ratings.length) * 1000) / 1000;
 }
 
 // O contexto substitui valores do perfil só neste pedido. Gêneros excluídos são somados:

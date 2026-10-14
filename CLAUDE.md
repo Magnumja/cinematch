@@ -38,7 +38,10 @@ node scripts/smoke-test.ts  # requer SUPABASE_URL, SUPABASE_ANON_KEY, SUPABASE_S
 
 ## Regras arquiteturais
 - Restrições obrigatórias (`constraints`) são filtros aplicados ANTES do ranking; preferências (`preferences`) só pontuam. Nunca misturar.
-- Contexto de um pedido nunca altera o perfil salvo. Contexto não reabre gênero excluído.
+- Contexto de um pedido nunca altera o perfil salvo. Contexto não reabre gênero excluído. "Hoje não" (avoidGenres) filtra o pedido.
+- Filme citado num pedido ("parecido com X") entra por `requestReferences`: guia a similaridade, nunca é recomendado nem vira histórico.
+- PostgREST corta respostas em 1000 linhas (max_rows): paginar com `.range()` ou agregar em SQL; nunca somar/exportar no cliente.
+- Recomendação gravada é revalidada contra o perfil e os estados atuais antes de ser exibida de novo.
 - Sem resultado compatível → lista vazia + sugestões de relaxamento. Nunca recomendar fora dos filtros.
 - Mudou pesos/lógica do ranking → subir `ALGORITHM_VERSION` em `core/engine/score.ts`.
 - A LLM nunca escolhe filmes: só extrai filtros (saída estruturada + revalidação Zod). Explicações são determinísticas a partir dos fatores.

@@ -18,13 +18,19 @@ export default function MovieDetail() {
   const [movie, setMovie] = useState<Movie | null | undefined>(undefined);
 
   useEffect(() => {
-    void moviesByIds([id])
+    let cancelled = false;
+    setMovie(undefined);
+    moviesByIds([id])
       .then(([m]) => {
+        if (cancelled) return;
         setMovie(m ?? null);
         if (m) setAmbient(m);
       })
-      .catch(() => setMovie(null));
-    return () => setAmbient(null);
+      .catch(() => !cancelled && setMovie(null));
+    return () => {
+      cancelled = true;
+      setAmbient(null);
+    };
   }, [id]);
 
   if (movie === undefined) return <Skeleton className="h-72" />;

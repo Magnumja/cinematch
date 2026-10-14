@@ -5,14 +5,16 @@ import type { ContextInput } from './schemas.ts';
 
 export const ASSISTANT_MODEL = 'claude-haiku-5-5';
 export const MAX_REQUEST_CHARS = 500;
+export const MAX_CLARIFICATION_CHARS = 300;
 // Preço oficial do Haiku 5.5 (prompts ≤ 100K tokens), US$ por milhão de tokens. Verificado em 2026-10-14.
 export const PRICE_PER_MTOK = { input: 0.1, output: 0.5 } as const;
 
-// Formato pedido à LLM (structured outputs). Faixas numéricas são validadas depois em toContext,
-// porque nem todo recurso de JSON Schema é suportado na saída estruturada.
+// Formato pedido à LLM (structured outputs). Faixas numéricas e tamanhos são validados depois
+// (toContext, clampClarification): o SDK não repassa maxLength/minimum ao provedor — só os cita na
+// descrição — e um .max() aqui faria o parse do SDK lançar erro em vez de cair na revalidação local.
 export const ExtractedRequestSchema = z.object({
   intent: z.enum(['recommend', 'clarify', 'off_topic']),
-  clarificationQuestion: z.string().nullable(),
+  clarificationQuestion: z.string().describe(`At most ${MAX_CLARIFICATION_CHARS} characters.`).nullable(),
   preferGenres: z.array(z.enum(GENRES)),
   avoidGenres: z.array(z.enum(GENRES)),
   maxRuntimeMin: z.number().nullable(),
@@ -71,4 +73,20 @@ export function toContext(e: ExtractedRequest): ContextInput {
 
 export function estimateCostUsd(inputTokens: number, outputTokens: number): number {
   return (inputTokens * PRICE_PER_MTOK.input + outputTokens * PRICE_PER_MTOK.output) / 1_000_000;
+}
+
+// Pergunta de esclarecimento exibida ao usuário: aparada e limitada (a LLM pode ignorar o limite pedido).
+export function clampClarification(question: string | null): string | null {
+  const q = question?.trim() ?? '';
+  return q.length === 0 ? null : q.slice(0, MAX_CLARIFICATION_CHARS);
+}
+
+// A mensagem do usuário vai dentro de <request>…</request>; escapar < e > impede fechar a tag
+// e injetar marcação que se passe por instrução do sistema.
+export function escapeRequestText(text: string): string {
+  return text.replace(/</g, '&lt;').replace(/>/g, '&gt;');
+}
+
+export function buildUserPrompt(message: string): string {
+  return `<request>\n${escapeRequestText(message)}\n</request>`;
 }

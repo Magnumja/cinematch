@@ -2,7 +2,7 @@
 import { useState } from 'react';
 import { MovieRowItem } from '../components/MovieCard.tsx';
 import { Button, PageHeader } from '../components/ui.tsx';
-import { removeUserMovie, updateUserMovie, type UserMovieEntry } from '../lib/api.ts';
+import { updateUserMovie, type UserMovieEntry } from '../lib/api.ts';
 import { useI18n, type MessageKey } from '../lib/i18n.tsx';
 import { useUser } from '../lib/session.tsx';
 import { useMovieActions } from '../lib/useMovieActions.ts';
@@ -75,7 +75,7 @@ export default function MyList() {
                         {t(s === 1 ? 'fb.liked' : 'fb.disliked')}
                       </Button>
                     ))}
-                    <Button variant="ghost" className="px-3 py-1.5" onClick={() => void act(() => removeUserMovie(userId, e.movieId))}>
+                    <Button variant="ghost" className="px-3 py-1.5" onClick={() => void act(() => updateUserMovie(userId, e.movieId, { watched: false, sentiment: 0, tags: [] }))}>
                       {t('list.remove')}
                     </Button>
                   </>

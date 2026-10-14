@@ -5,11 +5,14 @@ import { mergeConstraints, relaxedVariants } from '../../../core/engine/filters.
 import { recommend } from '../../../core/engine/recommend.ts';
 import { ContextSchema, type Constraints, type Context, type ContextInput, type Movie, type RecommendationResult } from '../../../core/schemas.ts';
 
-const CANDIDATE_POOL = 2500;
-const GENRE_POOL = 1500;
+// O PostgREST corta toda resposta em max_rows = 1000 (inclusive service role). Pools maiores exigem paginação.
+const PAGE = 1000;
+const CANDIDATE_POOL = 1000;
+const GENRE_POOL = 1000;
 
 export const CORS_HEADERS = {
-  'Access-Control-Allow-Origin': Deno.env.get('ALLOWED_ORIGIN') ?? '*',
+  // Sem ALLOWED_ORIGIN configurado, só o frontend local é aceito (falha fechada em produção).
+  'Access-Control-Allow-Origin': Deno.env.get('ALLOWED_ORIGIN') ?? 'http://127.0.0.1:5173',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
   'Access-Control-Allow-Methods': 'POST, OPTIONS',
 };
@@ -50,16 +53,31 @@ export async function moviesByIds(db: SupabaseClient, ids: readonly string[]): P
   return (data as MovieRow[]).map(rowToMovie);
 }
 
+// Todos os estados do usuário, paginando além do limite de 1000 linhas.
+// Truncar aqui faria um filme antigo marcado "não gostei"/"assistido" voltar a ser recomendado.
+async function loadAllStates(db: SupabaseClient, userId: string): Promise<UserMovieRow[]> {
+  const rows: UserMovieRow[] = [];
+  for (let from = 0; ; from += PAGE) {
+    const { data, error } = await db
+      .from('user_movies')
+      .select('movie_id,watched,watchlist,sentiment,not_interested,tags')
+      .eq('user_id', userId)
+      .order('movie_id')
+      .range(from, from + PAGE - 1);
+    if (error) throw error;
+    rows.push(...(data as UserMovieRow[]));
+    if (data.length < PAGE) return rows;
+  }
+}
+
 export async function loadUser(db: SupabaseClient, userId: string) {
-  const [{ data: profileRow, error: pErr }, { data: stateRows, error: sErr }] = await Promise.all([
+  const [{ data: profileRow, error: pErr }, stateRows] = await Promise.all([
     db.from('profiles').select('constraints,preferences,locale').eq('user_id', userId).single(),
-    db.from('user_movies').select('movie_id,watched,watchlist,sentiment,not_interested,tags').eq('user_id', userId)
-      .order('updated_at', { ascending: false }).limit(2000),
+    loadAllStates(db, userId),
   ]);
   if (pErr) throw pErr;
-  if (sErr) throw sErr;
   const profile = parseProfile(profileRow);
-  const states = (stateRows as UserMovieRow[]).map(rowToUserMovie);
+  const states = stateRows.map(rowToUserMovie);
   // Referências: favoritos e filmes com sinal (para similaridade e aprendizado implícito).
   const signalIds = states.filter((s) => s.sentiment !== 0 || s.watchlist || s.notInterested).map((s) => s.movieId);
   const referenceMovies = await moviesByIds(db, [...new Set([...profile.preferences.favoriteMovieIds, ...signalIds])]);
@@ -105,13 +123,17 @@ export async function loadCandidates(db: SupabaseClient, constraints: Constraint
 }
 
 // Quando nada passa nos filtros, o pré-filtro do banco deixa o motor sem candidatos para comparar.
-// Contamos no próprio banco quantos filmes cada restrição removida liberaria (aproximado: não desconta já assistidos).
-async function relaxationsFromDb(db: SupabaseClient, c: Constraints) {
+// Para cada restrição removida, contamos no banco e descontamos os filmes que o usuário não pode receber
+// (assistidos, não gostei, sem interesse, já mostrados). Acima de 1000 linhas a conta é um limite inferior.
+async function relaxationsFromDb(db: SupabaseClient, c: Constraints, blocked: ReadonlySet<string>) {
   const counts = await Promise.all(
     relaxedVariants(c).map(async ({ constraint, relaxed }) => {
-      const { count, error } = await applyPrefilter(db.from('movies').select('id', { count: 'exact', head: true }), relaxed);
+      const { data, count, error } = await applyPrefilter(db.from('movies').select('id', { count: 'exact' }), relaxed).limit(PAGE);
       if (error) throw error;
-      return { constraint, wouldMatch: count ?? 0 };
+      const ids = (data as { id: string }[]).map((r) => r.id);
+      const available = ids.filter((id) => !blocked.has(id)).length;
+      const wouldMatch = ids.length < PAGE ? available : Math.max(available, (count ?? 0) - blocked.size);
+      return { constraint, wouldMatch };
     }),
   );
   return counts.filter((r) => r.wouldMatch > 0).sort((a, b) => b.wouldMatch - a.wouldMatch);
@@ -134,16 +156,18 @@ export async function generateAndStore(
     context?: ContextInput;
     limit?: number;
     periodKey?: string;
-    // Referências extras só deste pedido (ex.: "parecido com X" no assistente). Não são persistidas.
-    extraFavoriteIds?: string[];
+    // Filmes citados só neste pedido ("parecido com X"): guiam a similaridade, não viram histórico
+    // nem são recomendados. Não são persistidos no perfil.
+    requestReferenceIds?: string[];
   },
 ): Promise<Generated> {
   const user = await loadUser(db, userId);
   const context: Context = ContextSchema.parse(opts.context ?? {});
-  const extra = opts.extraFavoriteIds ?? [];
-  const preferences = { ...user.profile.preferences, favoriteMovieIds: [...user.profile.preferences.favoriteMovieIds, ...extra] };
-  const referenceMovies = [...user.referenceMovies, ...(await moviesByIds(db, extra))];
-  const constraints = mergeConstraints(user.profile.constraints, context.constraints);
+  const preferences = user.profile.preferences;
+  const requestReferences = await moviesByIds(db, opts.requestReferenceIds ?? []);
+  const referenceMovies = user.referenceMovies;
+  const merged = mergeConstraints(user.profile.constraints, context.constraints);
+  const constraints = { ...merged, excludedGenres: [...new Set([...merged.excludedGenres, ...context.avoidGenres])] };
   const focus = [...new Set([...preferences.likedGenres, ...context.preferGenres])];
 
   const candidates = await loadCandidates(db, constraints, focus, context.mode === 'explore');
@@ -152,11 +176,19 @@ export async function generateAndStore(
     profile: { constraints: user.profile.constraints, preferences },
     states: user.states,
     referenceMovies,
+    requestReferences,
     context,
     limit: opts.limit ?? 5,
   });
   if (result.items.length === 0 && result.relaxations.length === 0) {
-    result.relaxations = await relaxationsFromDb(db, result.appliedConstraints);
+    const blocked = new Set([
+      ...context.excludeMovieIds,
+      ...requestReferences.map((m) => m.id),
+      ...user.states
+        .filter((s) => s.notInterested || s.sentiment === -1 || (s.watched && !result.appliedConstraints.allowRewatch))
+        .map((s) => s.movieId),
+    ]);
+    result.relaxations = await relaxationsFromDb(db, result.appliedConstraints, blocked);
   }
 
   const recRow = {
@@ -176,8 +208,8 @@ export async function generateAndStore(
   if (error) throw error;
   const recommendationId = (inserted as { id: string }[])[0]?.id ?? null;
 
-  const byId = new Map([...candidates, ...referenceMovies].map((m) => [m.id, m]));
-  const movies = [...new Set([...result.items.map((i) => i.movieId), ...referenceMovies.map((m) => m.id)])]
+  const byId = new Map([...candidates, ...referenceMovies, ...requestReferences].map((m) => [m.id, m]));
+  const movies = [...new Set([...result.items.map((i) => i.movieId), ...referenceMovies.map((m) => m.id), ...requestReferences.map((m) => m.id)])]
     .map((id) => byId.get(id))
     .filter((m): m is Movie => m !== undefined);
 

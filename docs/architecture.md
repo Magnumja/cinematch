@@ -26,7 +26,7 @@
 ## Pipeline de recomendação (`core/engine`)
 
 1. **Contexto**: `mergeConstraints(perfil, contexto)` — o contexto substitui valores só no pedido; gêneros excluídos são somados.
-2. **Candidatos**: o banco pré-filtra (igual ou mais permissivo que o motor) e traz até 2.500 populares + 1.500 dos gêneros em foco.
+2. **Candidatos**: o banco pré-filtra (igual ou mais permissivo que o motor) e traz até 1.000 populares + 1.000 dos gêneros em foco (limite `max_rows` do PostgREST).
 3. **Filtros obrigatórios** (`filters.ts`): sessão, sem interesse, não gostei, já assistido (salvo `allowRewatch`), gênero excluído, duração, nota mínima (sem nota = excluído), ano, idioma.
 4. **Ranking** (`score.ts`, `rules-v1`): gêneros declarados, gêneros que não gosta (penalidade), afinidade aprendida (≥ 3 interações), similaridade com favoritos (diretor + gêneros), nota da crítica, popularidade, gêneros do contexto, novidade (modo explorar). Pesos são hipóteses.
 5. **Diversidade** (`recommend.ts`): MMR com λ = 0,75.

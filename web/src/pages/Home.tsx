@@ -1,11 +1,13 @@
 // Home: um filme em destaque, poucas seções abaixo. Abrir a página não gera recomendação nova se já existe uma recente.
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
-import type { Constraints, Relaxable } from '../../../core/schemas.ts';
+import { hardFilterReason } from '../../../core/engine/filters.ts';
+import type { Constraints, Relaxable, UserMovie } from '../../../core/schemas.ts';
 import { CompactCard, HeroCard, MovieRowItem } from '../components/MovieCard.tsx';
 import { Button, ErrorState, NoMatch, SectionTitle, Skeleton, setAmbient } from '../components/ui.tsx';
-import { ApiError, latestRecommendation, relaxToContext, requestRecommendation, type RecView } from '../lib/api.ts';
+import { ApiError, latestRecommendation, relaxToContext, requestRecommendation, statesFor, type RecItem, type RecView } from '../lib/api.ts';
 import { useI18n } from '../lib/i18n.tsx';
+import { useUser } from '../lib/session.tsx';
 import { useMovieActions } from '../lib/useMovieActions.ts';
 
 export function HeroSkeleton({ label }: { label: string }) {
@@ -19,15 +21,16 @@ export function HeroSkeleton({ label }: { label: string }) {
   );
 }
 
-// Primeiro item ainda não descartado (pulado ou sem interesse).
-function firstOpen(v: RecView): number {
-  return v.items.findIndex((i) => i.feedback !== 'skipped' && i.feedback !== 'not_interested' && i.feedback !== 'disliked');
-}
+// Feedback que tira o item do destaque: já foi pulado, avaliado ou recusado.
+const CLOSED: ReadonlySet<RecItem['feedback']> = new Set(['skipped', 'not_interested', 'disliked', 'liked', 'watched']);
+// O servidor recebe no máximo 500 ids excluídos; mandamos só os mais recentes.
+const MAX_SHOWN = 300;
 
 const SCHEDULE_LABEL = { daily: 'home.today', weekly: 'home.weekly', monthly: 'home.monthly' } as const;
 
 export default function Home() {
   const { t } = useI18n();
+  const { userId, profile } = useUser();
   const { saved, saveFromRec, feedback, entries } = useMovieActions();
   const [view, setView] = useState<RecView | null>(null);
   const [index, setIndex] = useState(0);
@@ -43,18 +46,28 @@ export default function Home() {
     setLoading(true);
     setError(null);
     try {
-      const usable = (v: RecView | null) => (v && firstOpen(v) >= 0 ? v : null);
-      const existing = usable(await latestRecommendation(['scheduled'], 31)) ?? usable(await latestRecommendation(['on_demand'], 1));
+      // Uma recomendação gravada antes só é reaproveitada com os itens que ainda valem HOJE:
+      // o perfil (restrições) e o estado de cada filme podem ter mudado depois que ela foi gerada.
+      const usable = async (v: RecView | null): Promise<RecView | null> => {
+        if (!v) return null;
+        const states = await statesFor(userId, v.items.map((i) => i.movieId));
+        const items = v.items.filter((i) => {
+          const movie = v.movies.get(i.movieId);
+          return movie && !CLOSED.has(i.feedback) && hardFilterReason(movie, profile.constraints, states.get(i.movieId) as UserMovie | undefined, new Set()) === null;
+        });
+        return items.length > 0 ? { ...v, items } : null;
+      };
+      const existing = (await usable(await latestRecommendation(['scheduled'], 31))) ?? (await usable(await latestRecommendation(['on_demand'], 1)));
       const v = existing ?? (await requestRecommendation('on_demand'));
       setView(v);
-      setIndex(Math.max(0, firstOpen(v)));
+      setIndex(0);
       setShown(v.items.map((i) => i.movieId));
     } catch (e) {
       fail(e);
     } finally {
       setLoading(false);
     }
-  }, [fail]);
+  }, [fail, userId, profile.constraints]);
 
   // Uma carga por montagem (o StrictMode do React roda efeitos duas vezes em dev e geraria duas recomendações).
   const started = useRef(false);
@@ -70,7 +83,7 @@ export default function Home() {
     setBusy(true);
     setError(null);
     try {
-      const v = await requestRecommendation('on_demand', { excludeMovieIds: shown, constraints: extra ?? {} });
+      const v = await requestRecommendation('on_demand', { excludeMovieIds: shown.slice(-MAX_SHOWN), constraints: extra ?? {} });
       setView(v);
       setIndex(0);
       setShown((s) => [...s, ...v.items.map((i) => i.movieId)]);
@@ -87,16 +100,26 @@ export default function Home() {
     else await fresh();
   }
 
+  // Trava contra clique duplo: duas chamadas gerariam duas recomendações e gastariam o limite por minuto.
   async function another() {
-    const current = view?.items[index];
-    if (current) await feedback(current, 'skipped', []);
-    await advance();
+    if (busy) return;
+    setBusy(true);
+    try {
+      const current = view?.items[index];
+      if (current) await feedback(current, 'skipped', []);
+      await advance();
+    } catch (e) {
+      fail(e);
+    } finally {
+      setBusy(false);
+    }
   }
 
   async function loadExplore() {
+    if (busy) return;
     setBusy(true);
     try {
-      setExplore(await requestRecommendation('explore', { excludeMovieIds: shown }, 1));
+      setExplore(await requestRecommendation('explore', { excludeMovieIds: shown.slice(-MAX_SHOWN) }, 1));
     } catch (e) {
       fail(e);
     } finally {
@@ -107,7 +130,8 @@ export default function Home() {
   const hero = view?.items[index];
   const heroMovie = hero ? view.movies.get(hero.movieId) : undefined;
   const rest = view ? view.items.filter((_, i) => i !== index).slice(0, 4) : [];
-  const savedEntries = entries.filter((e) => e.watchlist).slice(0, 4);
+  // Mesmo critério de Minha lista → "Quero assistir".
+  const savedEntries = entries.filter((e) => e.watchlist && !e.watched).slice(0, 4);
   const exploreItem = explore?.items[0];
   const exploreMovie = exploreItem ? explore.movies.get(exploreItem.movieId) : undefined;
 
@@ -119,7 +143,7 @@ export default function Home() {
         ) : error ? (
           <ErrorState message={error} onRetry={() => void load()} />
         ) : view && view.items.length === 0 ? (
-          <NoMatch relaxations={view.relaxations} onRelax={(c: Relaxable) => void fresh(relaxToContext(c))} />
+          <NoMatch relaxations={view.relaxations} disabled={busy} onRelax={(c: Relaxable) => void (busy ? undefined : fresh(relaxToContext(c)))} />
         ) : hero && heroMovie && view ? (
           <HeroCard
             key={hero.movieId}

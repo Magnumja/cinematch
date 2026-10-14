@@ -207,6 +207,33 @@ Status possíveis:
   cabeçalhos de segurança (CSP etc.) no Cloudflare Pages, limites de tamanho nos arrays vindos do cliente, `lang` do HTML conforme idioma,
   rascunho da política de privacidade (`docs/privacy-policy-draft.md`).
 
+### DEC-034 — "Hoje não" é filtro do pedido
+- **Status:** Aprovado (delegado) · **Data:** 2026-10-14
+- **Decisão:** Gêneros evitados num pedido (Descobrir "Hoje não", assistente "nada de terror") são excluídos daquele pedido, não só penalizados.
+  Continuam sem alterar o perfil (DEC-021).
+
+### DEC-035 — Segunda auditoria, com trabalho dividido entre agentes (2026-10-14)
+- **Status:** Aprovado (delegado)
+- **Método:** revisor de código e auditor de segurança em modo só leitura, engenheiro de testes criando apenas testes e agente de banco
+  com arquivos exclusivos, em paralelo. Todo achado foi conferido antes de corrigir.
+- **Corrigidos (com teste de regressão):**
+  - Home reaproveitava recomendação gravada sem reaplicar o perfil e os estados atuais (filme excluído/assistido voltava ao destaque).
+  - Limite de 1000 linhas do PostgREST truncava o histórico do usuário (filme "não gostei" antigo podia voltar), a soma do teto
+    mensal de IA e a exportação LGPD → histórico paginado; soma e exportação agregadas em SQL.
+  - "Parecido com X" do assistente virava "que você curtiu" e podia recomendar o próprio X → canal `requestReferences`, X excluído.
+  - "Um dos filmes mais conhecidos" aparecia para filmes obscuros → só acima do p95 do catálogo (39 sitelinks).
+  - Nota comparada após arredondar (7,449 passava em 7,5+) → média exata; exibição unificada (`formatRating`).
+  - Feedback acumulava estados contraditórios (gostei + sem interesse) → cada feedback grava o estado completo.
+  - Liberar restrição no assistente virava a recomendação principal e perdia o "parecido com X".
+  - Assistente quebrava após ~10 pedidos (limite de ids); `shown` sem limite na Home.
+  - Contagem de relaxamento incluía filmes bloqueados; clique duplo gerava duas recomendações; buscas com resposta atrasada;
+    detalhe do filme agindo sobre o filme anterior; "remover" dos assistidos apagava salvo/sem interesse; falha de feedback silenciosa.
+  - Retry de agendamento perdia o retry no período seguinte; execução interrompida deixava usuários e `job_runs` presos.
+  - Limites de IA com condição de corrida → reserva atômica (`reserve_ai_request`) antes da chamada; `max_tokens` 600; pedido escapado.
+  - Abuso de armazenamento (jsonb/tags sem limite) → checks no banco. `feedback_at` definido pelo banco. Revogações extras.
+  - Login com mensagem genérica (não revela contas); CORS falha fechado.
+- **Testes:** 107 Vitest (motor, componentes, i18n), 48 pgTAP, 11 verificações ponta a ponta.
+
 ## Pendências abertas
 
 | Item | Situação |

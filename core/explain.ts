@@ -1,6 +1,7 @@
 // Explicações determinísticas a partir dos fatores reais do motor (DEC-023).
 // Só cita o que o motor de fato usou: nunca histórico, nota ou similaridade inexistentes.
 import { GENRE_LABELS, type Genre } from './domain/genres.ts';
+import { formatRating } from './engine/filters.ts';
 import type { Factor } from './schemas.ts';
 
 export type Locale = 'pt' | 'en';
@@ -29,6 +30,12 @@ export function explainFactor(f: Factor, locale: Locale, titleOf: (id: string) =
     case 'similar_to': {
       const title = titleOf(f.movieId);
       if (!title) return null;
+      if (f.source === 'request') {
+        if (f.sharedDirector) {
+          return pt ? `Mesmo diretor de ${title}, que você citou: ${f.sharedDirector}.` : `Same director as ${title}, which you mentioned: ${f.sharedDirector}.`;
+        }
+        return pt ? `Parecido com ${title}, que você citou.` : `Similar to ${title}, which you mentioned.`;
+      }
       if (f.sharedDirector) {
         return pt
           ? `Mesmo diretor de ${title}: ${f.sharedDirector}.`
@@ -39,8 +46,8 @@ export function explainFactor(f: Factor, locale: Locale, titleOf: (id: string) =
     case 'rating': {
       const sources = list(f.sources.map((s) => SOURCE_LABELS[s]), locale);
       return pt
-        ? `Bem avaliado pela crítica (${f.average.toFixed(1)}/10, ${sources}).`
-        : `Well reviewed by critics (${f.average.toFixed(1)}/10, ${sources}).`;
+        ? `Bem avaliado pela crítica (${formatRating(f.average)}/10, ${sources}).`
+        : `Well reviewed by critics (${formatRating(f.average)}/10, ${sources}).`;
     }
     case 'context_genres':
       return pt ? `Combina com o que você pediu agora.` : `Matches what you asked for right now.`;

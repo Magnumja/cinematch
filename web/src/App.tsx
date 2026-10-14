@@ -1,20 +1,24 @@
 // Rotas e guarda de acesso: sem sessão → login; sem onboarding → onboarding; senão o app.
 import { BrowserRouter, Navigate, Outlet, Route, Routes } from 'react-router-dom';
 import { Navbar } from './components/Navbar.tsx';
-import { useState, type FormEvent } from 'react';
+import { lazy, Suspense, useState, type FormEvent } from 'react';
 import { Button, ErrorState, Skeleton } from './components/ui.tsx';
 import { supabase } from './lib/api.ts';
 import { browserLocale, LocaleProvider, useI18n } from './lib/i18n.tsx';
 import { SessionProvider, useSession } from './lib/session.tsx';
-import Assistant from './pages/Assistant.tsx';
 import Auth from './pages/Auth.tsx';
-import Discover from './pages/Discover.tsx';
 import Home from './pages/Home.tsx';
-import MovieDetail from './pages/MovieDetail.tsx';
-import MyList from './pages/MyList.tsx';
-import Onboarding from './pages/Onboarding.tsx';
-import Profile from './pages/Profile.tsx';
-import Search from './pages/Search.tsx';
+
+// Telas fora do caminho principal (login → Home) carregam sob demanda.
+const Assistant = lazy(() => import('./pages/Assistant.tsx'));
+const Discover = lazy(() => import('./pages/Discover.tsx'));
+const MovieDetail = lazy(() => import('./pages/MovieDetail.tsx'));
+const MyList = lazy(() => import('./pages/MyList.tsx'));
+const Onboarding = lazy(() => import('./pages/Onboarding.tsx'));
+const Profile = lazy(() => import('./pages/Profile.tsx'));
+const Search = lazy(() => import('./pages/Search.tsx'));
+
+const PageFallback = () => <Skeleton className="h-64" />;
 
 function Layout() {
   const { t } = useI18n();
@@ -25,7 +29,9 @@ function Layout() {
       </a>
       <Navbar />
       <main id="main" className="mx-auto max-w-6xl px-5 py-10 sm:px-8 sm:py-14">
-        <Outlet />
+        <Suspense fallback={<PageFallback />}>
+          <Outlet />
+        </Suspense>
       </main>
       <footer className="mx-auto max-w-6xl px-5 pb-10 text-xs text-fog sm:px-8">{t('movie.source')}</footer>
     </>
@@ -102,9 +108,11 @@ function Gate() {
     content = null;
   } else if (!profile.onboardedAt) {
     content = (
-      <Routes>
-        <Route path="*" element={<Onboarding />} />
-      </Routes>
+      <Suspense fallback={<PageFallback />}>
+        <Routes>
+          <Route path="*" element={<Onboarding />} />
+        </Routes>
+      </Suspense>
     );
   } else {
     content = (

@@ -234,3 +234,49 @@ describe('propriedade: restrições obrigatórias sempre respeitadas', () => {
     }
   });
 });
+
+describe('regressões da revisão de código (2026-10-14)', () => {
+  it('nota mínima compara a média exata: 7,449 não passa em 7,5', () => {
+    const candidates = [
+      movie(1, { ratings: [{ source: 'metacritic', value: 7.4, raw: '74/100' }, { source: 'rotten_tomatoes', value: 7.498, raw: '7.498/10' }] }),
+      movie(2, { ratings: rated(7.5) }),
+    ];
+    const result = recommend({ candidates, profile: profile({ minRating: 7.5 }), states: [], referenceMovies: [] });
+    expect(result.items.map((i) => i.movieId)).toEqual(['Q2']);
+  });
+
+  it('"um dos mais conhecidos" só aparece para filmes realmente populares', () => {
+    const obscure = recommend({ candidates: [movie(1, { popularity: 8 }), movie(2, { popularity: 12 })], profile: profile(), states: [], referenceMovies: [] });
+    expect(obscure.items.flatMap((i) => i.factors).some((f) => f.type === 'popularity')).toBe(false);
+    const famous = recommend({ candidates: [movie(1, { popularity: 120 })], profile: profile(), states: [], referenceMovies: [] });
+    expect(famous.items[0]!.factors.some((f) => f.type === 'popularity')).toBe(true);
+  });
+
+  it('filme citado no pedido guia a similaridade, não é recomendado e não vira "que você curtiu"', () => {
+    const cited = movie(100, { genres: ['thriller'], directors: [{ id: 'QX', name: 'Fincher' }], popularity: 999 });
+    const candidates = [cited, movie(1, { genres: ['thriller'], directors: [{ id: 'QX', name: 'Fincher' }] }), movie(2, { genres: ['comedy'] })];
+    const result = recommend({ candidates, profile: profile(), states: [], referenceMovies: [], requestReferences: [cited] });
+    expect(result.items.map((i) => i.movieId)).not.toContain('Q100');
+    expect(result.items[0]!.movieId).toBe('Q1');
+    const reasons = explain(result.items[0]!.factors, 'pt', (id) => (id === 'Q100' ? 'Zodiac' : undefined));
+    expect(reasons.join(' ')).toContain('que você citou');
+    expect(reasons.join(' ')).not.toContain('curtiu');
+  });
+
+  it('"Hoje não" do contexto é filtro, não só penalidade', () => {
+    const candidates = [movie(1, { genres: ['horror'], popularity: 999, ratings: rated(9.5) }), movie(2, { genres: ['comedy'] })];
+    const result = recommend({ candidates, profile: profile({}, { likedGenres: ['horror'] }), states: [], referenceMovies: [], context: { avoidGenres: ['horror'] } });
+    expect(result.items.map((i) => i.movieId)).toEqual(['Q2']);
+  });
+});
+
+describe('exibição de nota', () => {
+  it('card e motivo arredondam a mesma média do mesmo jeito (8,45 → 8.5)', async () => {
+    const { formatRating } = await import('./filters.ts');
+    const m = movie(1, { ratings: [{ source: 'metacritic', value: 8.4, raw: '84/100' }, { source: 'rotten_tomatoes', value: 8.5, raw: '8.5/10' }] });
+    const result = recommend({ candidates: [m], profile: profile(), states: [], referenceMovies: [] });
+    const reason = explain(result.items[0]!.factors, 'pt', () => undefined).find((r) => r.includes('crítica'))!;
+    expect(formatRating(averageRating(m)!)).toBe('8.5');
+    expect(reason).toContain('8.5/10');
+  });
+});

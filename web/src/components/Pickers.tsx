@@ -49,8 +49,16 @@ export function FavoritesPicker({ value, onChange, max }: { value: string[]; onC
   }, [initialIds]);
 
   useEffect(() => {
-    const handle = setTimeout(() => void searchMovies(query, 8).then(setResults).catch(() => setResults([])), 250);
-    return () => clearTimeout(handle);
+    let cancelled = false;
+    const handle = setTimeout(() => {
+      searchMovies(query, 8)
+        .then((r) => !cancelled && setResults(r))
+        .catch(() => !cancelled && setResults([]));
+    }, 250);
+    return () => {
+      cancelled = true;
+      clearTimeout(handle);
+    };
   }, [query]);
 
   function toggle(m: Movie) {

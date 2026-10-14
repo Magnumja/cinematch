@@ -117,6 +117,8 @@ export const FactorSchema = z.discriminatedUnion('type', [
     movieId: z.string(),
     sharedDirector: z.string().nullable(),
     sharedGenres: z.array(GenreSchema),
+    // history (ou ausente, em fatores gravados antes) = favorito/curtido; request = citado só neste pedido.
+    source: z.enum(['history', 'request']).optional(),
     weight: z.number(),
   }),
   z.object({ type: z.literal('rating'), average: z.number(), sources: z.array(RatingSourceSchema), weight: z.number() }),

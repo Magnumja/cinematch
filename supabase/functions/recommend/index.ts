@@ -4,9 +4,12 @@ import { ContextSchema } from '../../../core/schemas.ts';
 import { CORS_HEADERS, generateAndStore, json, serviceClient, tooManyRequests, userIdFromRequest } from '../_shared/service.ts';
 
 const BodySchema = z.object({
-  kind: z.enum(['on_demand', 'discover', 'explore']).default('on_demand'),
+  // assistant = "liberar restrição" de um pedido do assistente, reaproveitando os filtros já interpretados (sem LLM).
+  kind: z.enum(['on_demand', 'discover', 'explore', 'assistant']).default('on_demand'),
   context: ContextSchema.optional(),
   limit: z.number().int().min(1).max(10).default(5),
+  // "Parecido com X" de um pedido do assistente, para manter a referência ao liberar restrições.
+  similarToId: z.string().regex(/^Q\d{1,15}$/).optional(),
 });
 
 Deno.serve(async (req) => {
@@ -22,11 +25,12 @@ Deno.serve(async (req) => {
 
   try {
     if (await tooManyRequests(db, userId, 20)) return json({ error: 'rate_limited' }, 429);
-    const { kind, context, limit } = parsed.data;
+    const { kind, context, limit, similarToId } = parsed.data;
     const out = await generateAndStore(db, userId, {
       kind,
       context: kind === 'explore' ? { ...context, mode: 'explore' } : context,
       limit,
+      requestReferenceIds: similarToId ? [similarToId] : [],
     });
     return json({
       recommendationId: out.recommendationId,
