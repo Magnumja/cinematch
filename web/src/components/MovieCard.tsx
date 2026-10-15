@@ -192,14 +192,16 @@ export function HeroCard({ item, movie, movies, saved, onSave, onFeedback, onAno
           Desktop: pôster | conteúdo | motivos. Sem pôster, o cabeçalho ocupa a largura toda. */}
       <div className={`relative grid gap-x-5 gap-y-6 p-5 sm:gap-x-8 sm:p-10 lg:gap-x-12 lg:gap-y-6 lg:p-14 ${hasPoster ? 'grid-cols-[6.5rem_minmax(0,1fr)] sm:grid-cols-[10rem_minmax(0,1fr)] lg:grid-cols-[14rem_minmax(0,1.4fr)_minmax(0,1fr)]' : 'grid-cols-1 lg:grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)]'}`}>
         <Poster movie={movie} hue={hueOf(movie)} size="w500" className="col-start-1 row-start-1 w-full self-start shadow-[0_20px_50px_#0008] lg:row-span-2" />
-        <div className={`min-w-0 row-start-1 self-center lg:self-start ${hasPoster ? 'col-start-2' : 'col-start-1'}`}>
+        {/* @container: o título é dimensionado pela largura desta coluna (cqi), não da tela — uma palavra longa
+            como "OPPENHEIMER" não invade o painel ao lado. overflow-wrap só quebra a palavra em último caso. */}
+        <div className={`@container min-w-0 row-start-1 self-center lg:self-start ${hasPoster ? 'col-start-2' : 'col-start-1'}`}>
           <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
             <p className="rounded-full border border-ember/30 bg-ink/40 px-2.5 py-1 text-[0.7rem] font-medium uppercase tracking-wider text-ember sm:px-3 sm:py-1.5 sm:text-xs">{label}</p>
             <TierLabel tier={item.tier} />
           </div>
           <h2
             id="hero-title"
-            className={`mt-3 font-display leading-[0.94] font-extrabold tracking-[-0.01em] text-balance text-paper uppercase sm:mt-5 ${hasPoster ? 'text-[clamp(1.85rem,6.5vw,6.25rem)]' : 'text-[clamp(2.5rem,8vw,6.25rem)]'}`}
+            className="mt-3 font-display text-[clamp(1.5rem,16cqi,6.25rem)] leading-[0.94] font-extrabold tracking-[-0.01em] text-balance text-paper uppercase [overflow-wrap:anywhere] sm:mt-5"
           >
             {title}
           </h2>
@@ -262,12 +264,12 @@ export function CompactCard({ item, movie, movies, saved, onSave, entranceDelay 
       className="movie-card group relative flex h-full flex-col justify-between gap-4 overflow-hidden rounded-2xl p-4 ring-1 sm:gap-5 sm:p-5 ring-matte hover:ring-fog/30 focus-within:ring-fog/40 motion-safe:hover:shadow-[0_12px_30px_#0004]"
     >
       <div aria-hidden="true" className="absolute inset-x-0 top-0 h-0.5" style={{ background: `hsl(${hueOf(movie)} 55% 50% / 0.7)` }} />
-      <div className="min-w-0">
+      <div className="@container min-w-0">
         <div className="flex items-start justify-between gap-3">
           <TierLabel tier={item.tier} />
           <Poster movie={movie} hue={hueOf(movie)} size="w185" className="w-16 sm:w-20" />
         </div>
-        <h3 className="mt-3 font-display text-[1.65rem] leading-[0.95] font-bold text-balance text-paper uppercase sm:mt-4 sm:min-h-20 sm:text-4xl">
+        <h3 className="mt-3 font-display text-[clamp(1.4rem,14cqi,2.25rem)] leading-[0.95] font-bold text-balance text-paper uppercase [overflow-wrap:anywhere] sm:mt-4 sm:min-h-20">
           <Link to={`/movie/${movie.id}`} className="after:absolute after:inset-0 focus-visible:outline-none">
             {displayTitle(movie, locale)}
           </Link>

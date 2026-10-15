@@ -58,8 +58,8 @@ export default function MovieDetail() {
         {/* Celular: pôster pequeno ao lado do título; a partir do tablet, pôster grande à esquerda de tudo. */}
         <div className={`relative grid gap-x-5 gap-y-6 md:gap-x-12 ${hasPoster ? 'grid-cols-[7rem_minmax(0,1fr)] sm:grid-cols-[11rem_minmax(0,1fr)] md:grid-cols-[16rem_minmax(0,1fr)]' : 'grid-cols-1'}`}>
           <Poster movie={current} hue={hueOf(current)} size="w500" className="col-start-1 row-start-1 w-full self-start shadow-[0_20px_50px_#0008] md:row-span-2" />
-          <div className={`min-w-0 row-start-1 self-center md:self-end ${hasPoster ? 'col-start-2' : ''}`}>
-            <h1 className={`font-display leading-[0.94] font-extrabold text-balance text-paper uppercase ${hasPoster ? 'text-[clamp(2rem,7vw,6.5rem)]' : 'text-[clamp(2.75rem,8vw,6.5rem)]'}`}>
+          <div className={`@container min-w-0 row-start-1 self-center md:self-end ${hasPoster ? 'col-start-2' : ''}`}>
+            <h1 className="font-display text-[clamp(1.6rem,16cqi,6.5rem)] leading-[0.94] font-extrabold text-balance text-paper uppercase [overflow-wrap:anywhere]">
               {shownTitle}
             </h1>
             {otherTitle !== shownTitle && <p className="mt-2 text-sm text-fog sm:mt-3 sm:text-base">{otherTitle}</p>}
