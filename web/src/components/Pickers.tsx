@@ -1,11 +1,12 @@
 import { AnimatedInput } from './AnimatedInput.tsx';
 // Controles de preferência compartilhados por onboarding, perfil e Descobrir.
-import { useEffect, useState } from 'react';
+import { useEffect, useId, useState } from 'react';
 import { displayTitle } from '../../../core/db.ts';
 import { GENRES, type Genre } from '../../../core/domain/genres.ts';
 import type { Constraints, Movie } from '../../../core/schemas.ts';
 import { moviesByIds, searchMovies, type Schedule } from '../lib/api.ts';
 import { useI18n } from '../lib/i18n.tsx';
+import { Dropdown } from './Dropdown.tsx';
 import { GenreChip, type ChipState } from './ui.tsx';
 
 // Um toque = gosta, dois = não curte, três = neutro.
@@ -125,28 +126,31 @@ const RUNTIMES = [90, 100, 120, 150, 180];
 const RATINGS = [6, 7, 7.5, 8, 8.5];
 export const LANGUAGES = ['pt', 'en', 'es', 'fr', 'it', 'de', 'ja', 'ko'] as const;
 
-function Select<T extends string | number>({ label, value, options, onChange, format, anyLabel }: {
-  label: string; value: T | null; options: readonly T[]; onChange: (v: T | null) => void; format: (v: T) => string; anyLabel: string;
-}) {
+// Interruptor no estilo da marca (trilho grafite, botão ember quando ligado). role="switch" + rótulo associado.
+export function Switch({ checked, onChange, label, tone = 'ember' }: { checked: boolean; onChange: (v: boolean) => void; label: string; tone?: 'ember' | 'violet' }) {
+  const id = useId();
+  const on = tone === 'violet' ? 'bg-signal-violet/80 ring-signal-violet' : 'bg-ember/85 ring-ember';
   return (
-    <label className="block">
-      <span className="text-sm text-fog">{label}</span>
-      <select
-        value={value === null ? '' : String(value)}
-        onChange={(e) => {
-          const raw = e.target.value;
-          onChange(raw === '' ? null : (options.find((o) => String(o) === raw) ?? null));
-        }}
-        className="mt-1.5 block w-full rounded-xl bg-graphite px-4 py-3 text-paper ring-1 ring-matte focus:ring-fog/50 focus:outline-none"
+    <div className="flex min-h-11 items-center gap-3">
+      <button
+        type="button"
+        role="switch"
+        aria-checked={checked}
+        aria-labelledby={id}
+        onClick={() => onChange(!checked)}
+        className={`relative inline-flex h-7 w-12 shrink-0 items-center rounded-full ring-1 transition-colors duration-200 ease-(--ease-calm) focus-visible:ring-2 focus-visible:ring-ember focus-visible:ring-offset-2 focus-visible:ring-offset-ink focus-visible:outline-none disabled:opacity-50 ${checked ? on : 'bg-graphite ring-matte'}`}
       >
-        <option value="">{anyLabel}</option>
-        {options.map((o) => (
-          <option key={String(o)} value={String(o)}>
-            {format(o)}
-          </option>
-        ))}
-      </select>
-    </label>
+        {/* Área de toque de 44px sem aumentar o desenho do trilho. */}
+        <span aria-hidden="true" className="absolute -inset-2" />
+        <span
+          aria-hidden="true"
+          className={`size-5 rounded-full shadow transition-transform duration-200 ease-(--ease-calm) motion-reduce:transition-none ${checked ? 'translate-x-6 bg-ink' : 'translate-x-1 bg-fog'}`}
+        />
+      </button>
+      <span id={id} className="cursor-pointer text-paper" onClick={() => onChange(!checked)}>
+        {label}
+      </span>
+    </div>
   );
 }
 
@@ -156,19 +160,16 @@ export function LimitsFields({ value, onChange, showRewatch = true }: { value: C
   return (
     <div className="space-y-5">
       <div className="grid gap-4 sm:grid-cols-3">
-        <Select label={t('profile.maxRuntime')} value={value.maxRuntimeMin} options={RUNTIMES} anyLabel={t('discover.any')}
-          format={(n) => t('common.minutes', { n })} onChange={(v) => onChange({ ...value, maxRuntimeMin: v })} />
-        <Select label={t('profile.minRating')} value={value.minRating} options={RATINGS} anyLabel={t('discover.any')}
-          format={(n) => `${n.toFixed(1)}+`} onChange={(v) => onChange({ ...value, minRating: v })} />
-        <Select label={t('profile.languages')} value={value.languages[0] ?? null} options={LANGUAGES} anyLabel={t('profile.anyLanguage')}
-          format={languageName} onChange={(v) => onChange({ ...value, languages: v ? [v] : [] })} />
+        <Dropdown label={t('profile.maxRuntime')} value={value.maxRuntimeMin} placeholder={t('discover.any')}
+          options={RUNTIMES.map((n) => ({ value: n, label: t('common.minutes', { n }) }))} onChange={(v) => onChange({ ...value, maxRuntimeMin: v })} />
+        <Dropdown label={t('profile.minRating')} value={value.minRating} placeholder={t('discover.any')}
+          options={RATINGS.map((n) => ({ value: n, label: `${n.toFixed(1)}+` }))} onChange={(v) => onChange({ ...value, minRating: v })} />
+        <Dropdown<string> label={t('profile.languages')} value={value.languages[0] ?? null} placeholder={t('profile.anyLanguage')}
+          options={LANGUAGES.map((code) => ({ value: code, label: languageName(code) }))} onChange={(v) => onChange({ ...value, languages: v ? [v] : [] })} />
       </div>
       {value.minRating !== null && <p className="text-sm text-fog">{t('profile.minRatingHint')}</p>}
       {showRewatch && (
-        <label className="flex items-center gap-3 text-paper">
-          <input type="checkbox" checked={value.allowRewatch} onChange={(e) => onChange({ ...value, allowRewatch: e.target.checked })} className="size-4 accent-ember" />
-          {t('profile.rewatch')}
-        </label>
+        <Switch checked={value.allowRewatch} onChange={(v) => onChange({ ...value, allowRewatch: v })} label={t('profile.rewatch')} />
       )}
     </div>
   );
@@ -180,50 +181,30 @@ export function ScheduleFields({ value, onChange }: { value: Omit<Schedule, 'nex
   const weekdays = Array.from({ length: 7 }, (_, i) =>
     new Intl.DateTimeFormat(locale === 'pt' ? 'pt-BR' : 'en', { weekday: 'long', timeZone: 'UTC' }).format(new Date(Date.UTC(2026, 9, 11 + i))),
   );
-  const field = 'mt-1.5 block w-full rounded-xl bg-graphite px-4 py-3 text-paper ring-1 ring-matte focus:ring-fog/50 focus:outline-none';
   return (
     <div className="space-y-4">
-      <label className="flex items-center gap-3 text-paper">
-        <input type="checkbox" checked={value.active} onChange={(e) => onChange({ ...value, active: e.target.checked })} className="size-4 accent-ember" />
-        {t('profile.scheduleActive')}
-      </label>
+      <Switch checked={value.active} onChange={(v) => onChange({ ...value, active: v })} label={t('profile.scheduleActive')} />
       <fieldset disabled={!value.active} className="grid gap-4 disabled:opacity-50 sm:grid-cols-3">
-        <label>
-          <span className="text-sm text-fog">{t('profile.frequency')}</span>
-          <select className={field} value={value.frequency} onChange={(e) => onChange({ ...value, frequency: e.target.value as Schedule['frequency'], weekday: value.weekday ?? 5, dayOfMonth: value.dayOfMonth ?? 1 })}>
-            <option value="daily">{t('profile.daily')}</option>
-            <option value="weekly">{t('profile.weekly')}</option>
-            <option value="monthly">{t('profile.monthly')}</option>
-          </select>
-        </label>
+        <Dropdown<Schedule['frequency']> label={t('profile.frequency')} value={value.frequency} placeholder={t('profile.weekly')} allowClear={false}
+          options={[
+            { value: 'daily', label: t('profile.daily') },
+            { value: 'weekly', label: t('profile.weekly') },
+            { value: 'monthly', label: t('profile.monthly') },
+          ]}
+          onChange={(v) => v && onChange({ ...value, frequency: v, weekday: value.weekday ?? 5, dayOfMonth: value.dayOfMonth ?? 1 })} />
         {value.frequency === 'weekly' && (
-          <label>
-            <span className="text-sm text-fog">{t('profile.weekday')}</span>
-            <select className={field} value={value.weekday ?? 5} onChange={(e) => onChange({ ...value, weekday: Number(e.target.value) })}>
-              {weekdays.map((d, i) => (
-                <option key={d} value={i}>{d}</option>
-              ))}
-            </select>
-          </label>
+          <Dropdown label={t('profile.weekday')} value={value.weekday ?? 5} placeholder={weekdays[5]!} allowClear={false}
+            options={weekdays.map((d, i) => ({ value: i, label: d }))}
+            onChange={(v) => v !== null && onChange({ ...value, weekday: v })} />
         )}
         {value.frequency === 'monthly' && (
-          <label>
-            <span className="text-sm text-fog">{t('profile.dayOfMonth')}</span>
-            <select className={field} value={value.dayOfMonth ?? 1} onChange={(e) => onChange({ ...value, dayOfMonth: Number(e.target.value) })}>
-              {Array.from({ length: 28 }, (_, i) => i + 1).map((d) => (
-                <option key={d} value={d}>{d}</option>
-              ))}
-            </select>
-          </label>
+          <Dropdown label={t('profile.dayOfMonth')} value={value.dayOfMonth ?? 1} placeholder="1" allowClear={false}
+            options={Array.from({ length: 28 }, (_, i) => ({ value: i + 1, label: String(i + 1) }))}
+            onChange={(v) => v !== null && onChange({ ...value, dayOfMonth: v })} />
         )}
-        <label>
-          <span className="text-sm text-fog">{t('profile.hour')}</span>
-          <select className={field} value={value.hour} onChange={(e) => onChange({ ...value, hour: Number(e.target.value) })}>
-            {Array.from({ length: 24 }, (_, h) => (
-              <option key={h} value={h}>{`${String(h).padStart(2, '0')}:00`}</option>
-            ))}
-          </select>
-        </label>
+        <Dropdown label={t('profile.hour')} value={value.hour} placeholder="19:00" allowClear={false}
+          options={Array.from({ length: 24 }, (_, h) => ({ value: h, label: `${String(h).padStart(2, '0')}:00` }))}
+          onChange={(v) => v !== null && onChange({ ...value, hour: v })} />
       </fieldset>
     </div>
   );

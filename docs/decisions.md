@@ -347,6 +347,31 @@ Status possíveis:
 - **CSP:** `frame-src https://www.youtube-nocookie.com`. O YouTube exige o Referer da página (erro 153 sem ele); a política
   `strict-origin-when-cross-origin` envia a origem. "Abrir no YouTube" fica como alternativa.
 
+### DEC-045 — Listas personalizadas (2026-10-16)
+- **Status:** Aprovado · **Data:** 2026-10-16
+- **Decisão:** o usuário cria listas próprias ("pastas"), com nome de 1 a 60 caracteres e descrição de até 280, no estilo do Letterboxd.
+  - Tabelas `user_lists` e `user_list_items`, com RLS só para o dono.
+  - Nome único por usuário, ignorando maiúsculas e espaços.
+  - Limites: 50 listas por usuário e 500 filmes por lista (trigger, erro 54000).
+  - As listas entram na exportação LGPD e são apagadas em cascata quando a conta é excluída.
+  - As listas do sistema (Quero assistir, Assistidos, Sem interesse) continuam em `user_movies`.
+- **Interface:**
+  - Botão "+ Lista" no destaque, nos cards, no detalhe e na busca. Ele abre um painel (portal) para marcar listas
+    e criar uma nova na hora.
+  - "Minhas listas" no topo de Minha lista, com capa de pôsteres sobrepostos.
+  - Página `/lists/:id` para editar, excluir e remover filmes.
+- **Por enquanto:** as listas são privadas. Compartilhar por link exige revisar RLS e LGPD (ideia 11 da auditoria).
+
+### DEC-046 — Sem créditos de bibliotecas de UI na interface (2026-10-16)
+- **Status:** Aprovado · **Data:** 2026-10-16
+- **Decisão:** o responsável pediu para tirar da interface os créditos "Unlumen UI · Skiper UI".
+  - Os componentes gratuitos do Unlumen não exigem atribuição (licença deles), então o crédito pode sair.
+  - O Skiper UI gratuito exige atribuição ("Attribution to Skiper UI is required when using the free version").
+    Por isso o único componente vindo dele (`AnimatedLink`) foi trocado por `ArrowLink`, uma implementação própria.
+    Sem código do Skiper no app, não há atribuição a manter.
+  - O registro interno continua em `docs/ui-component-sources.md`.
+  - Os créditos de dados (TMDB, JustWatch, Wikidata) continuam, porque são exigidos pelos termos dessas fontes.
+
 ## Pendências abertas
 
 | Item | Situação |

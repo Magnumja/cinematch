@@ -9,3 +9,6 @@ supabase/.branches/
 *.log
 .DS_Store
 .playwright-mcp/
+
+# Worktrees de agentes do Claude Code
+.claude/worktrees/

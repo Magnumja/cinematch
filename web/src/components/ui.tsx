@@ -83,10 +83,6 @@ export function SectionTitle({ children, action }: { children: ReactNode; action
   );
 }
 
-export function Skeleton({ className = '' }: { className?: string }) {
-  return <div className={`skeleton ${className}`} aria-hidden="true" />;
-}
-
 export function ErrorState({ message, onRetry }: { message: string; onRetry?: () => void }) {
   const { t } = useI18n();
   return (

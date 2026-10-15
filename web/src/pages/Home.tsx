@@ -1,26 +1,16 @@
 // Home: um filme em destaque, poucas seções abaixo. Abrir a página não gera recomendação nova se já existe uma recente.
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { AnimatedLink } from '../components/skiper-ui/AnimatedLink.tsx';
+import { ArrowLink } from '../components/ArrowLink.tsx';
 import { hardFilterReason } from '../../../core/engine/filters.ts';
 import type { Constraints, Relaxable, UserMovie } from '../../../core/schemas.ts';
 import { HowItWorks } from '../components/HowItWorks.tsx';
 import { CompactCard, HeroCard, MovieRowItem } from '../components/MovieCard.tsx';
-import { Button, ErrorState, NoMatch, SectionTitle, Skeleton, setAmbient } from '../components/ui.tsx';
+import { Button, ErrorState, NoMatch, SectionTitle, setAmbient } from '../components/ui.tsx';
+import { HeroSkeleton } from '../components/Skeletons.tsx';
 import { ApiError, latestRecommendation, relaxToContext, requestRecommendation, statesFor, type RecItem, type RecView } from '../lib/api.ts';
 import { useI18n } from '../lib/i18n.tsx';
 import { useUser } from '../lib/session.tsx';
 import { useMovieActions } from '../lib/useMovieActions.ts';
-
-export function HeroSkeleton({ label }: { label: string }) {
-  return (
-    <div className="rounded-[28px] bg-graphite/40 p-7 ring-1 ring-matte sm:p-10 lg:p-14" aria-busy="true" aria-label={label}>
-      <Skeleton className="h-4 w-40" />
-      <Skeleton className="mt-6 h-20 w-3/4 sm:h-28" />
-      <Skeleton className="mt-6 h-4 w-1/2" />
-      <Skeleton className="mt-3 h-4 w-2/3" />
-    </div>
-  );
-}
 
 // Feedback que tira o item do destaque: já foi pulado, avaliado ou recusado.
 const CLOSED: ReadonlySet<RecItem['feedback']> = new Set(['skipped', 'not_interested', 'disliked', 'liked', 'watched']);
@@ -140,14 +130,15 @@ export default function Home() {
   const exploreMovie = exploreItem ? explore.movies.get(exploreItem.movieId) : undefined;
 
   return (
-    <div className="space-y-12">
+    <div className="space-y-8 sm:space-y-12">
       <header className="flex flex-wrap items-end justify-between gap-5">
         <div>
-          <p className="mb-3 text-xs font-medium uppercase tracking-[0.2em] text-ember">Cineou / {t('home.forYou')}</p>
-          <h1 className="font-display text-5xl font-bold tracking-tight sm:text-6xl">{t('home.title')}</h1>
-          <p className="mt-3 text-sm text-fog">{t('home.intro')}</p>
+          <p className="mb-3 hidden text-xs font-medium uppercase tracking-[0.2em] text-ember sm:block">Cineou / {t('home.forYou')}</p>
+          <h1 className="font-display text-4xl font-bold tracking-tight sm:text-6xl">{t('home.title')}</h1>
+          <p className="mt-3 hidden text-sm text-fog sm:block">{t('home.intro')}</p>
         </div>
-        <AnimatedLink to="/discover" className="inline-flex min-h-11 items-center gap-4 rounded-full border border-matte px-5 text-sm hover:border-fog">{t('nav.discover')}</AnimatedLink>
+        {/* No celular o Descobrir já está no menu: o espaço vai para o filme. */}
+        <ArrowLink to="/discover" className="hidden min-h-11 items-center gap-4 rounded-full border border-matte px-5 text-sm hover:border-fog sm:inline-flex">{t('nav.discover')}</ArrowLink>
       </header>
       <section aria-live="polite">
         {loading ? (
@@ -204,7 +195,7 @@ export default function Home() {
           )}
         </div>
         <div>
-          <SectionTitle action={<AnimatedLink to="/list" className="text-sm text-fog hover:text-paper">{t('home.seeList')}</AnimatedLink>}>{t('home.saved')}</SectionTitle>
+          <SectionTitle action={<ArrowLink to="/list" className="text-sm text-fog hover:text-paper">{t('home.seeList')}</ArrowLink>}>{t('home.saved')}</SectionTitle>
           {savedEntries.length === 0 ? (
             <p className="text-fog">{t('home.savedEmpty')}</p>
           ) : (

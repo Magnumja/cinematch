@@ -2,7 +2,7 @@
 -- Rodar com: npx supabase test db
 begin;
 create extension if not exists pgtap with schema extensions;
-select plan(53);
+select plan(65);
 
 -- Dados de teste (sintéticos).
 insert into auth.users (id, email) values
@@ -254,6 +254,54 @@ select ok(
 set local role anon;
 select throws_ok($$ select public.export_my_data() $$, '42501', null, 'anônimo não exporta dados');
 reset role;
+
+-- ---------------------------------------------------------------- Listas personalizadas (DEC-045)
+set local role authenticated;
+set local request.jwt.claims = '{"sub":"00000000-0000-0000-0000-00000000000b","role":"authenticated"}';
+select lives_ok(
+  $$ insert into public.user_lists (id, user_id, name) values ('20000000-0000-0000-0000-000000000001', '00000000-0000-0000-0000-00000000000b', 'Terror') $$,
+  'B cria a própria lista'
+);
+select lives_ok(
+  $$ insert into public.user_list_items (list_id, movie_id) values ('20000000-0000-0000-0000-000000000001', 'Q999999991') $$,
+  'B adiciona filme à própria lista'
+);
+select throws_ok(
+  $$ insert into public.user_lists (user_id, name) values ('00000000-0000-0000-0000-00000000000b', '  terror ') $$,
+  '23505', null, 'nome de lista repetido (ignorando caixa e espaços) é rejeitado'
+);
+select throws_ok(
+  $$ insert into public.user_lists (user_id, name) values ('00000000-0000-0000-0000-00000000000b', '   ') $$,
+  '23514', null, 'lista sem nome é rejeitada'
+);
+select ok(
+  (select jsonb_array_length(d->'lists') = 1 and jsonb_array_length(d->'lists'->0->'items') = 1 from public.export_my_data() d),
+  'exportação LGPD inclui as listas e seus filmes'
+);
+
+set local request.jwt.claims = '{"sub":"00000000-0000-0000-0000-00000000000a","role":"authenticated"}';
+select is((select count(*)::int from public.user_lists), 0, 'A não vê listas de B');
+select is((select count(*)::int from public.user_list_items), 0, 'A não vê filmes das listas de B');
+select throws_ok(
+  $$ insert into public.user_list_items (list_id, movie_id) values ('20000000-0000-0000-0000-000000000001', 'Q999999992') $$,
+  '42501', null, 'A não adiciona filme à lista de B'
+);
+select throws_ok(
+  $$ insert into public.user_lists (user_id, name) values ('00000000-0000-0000-0000-00000000000b', 'Invasão') $$,
+  '42501', null, 'A não cria lista em nome de B'
+);
+update public.user_lists set name = 'hackeada' where id = '20000000-0000-0000-0000-000000000001';
+reset role;
+select is((select name from public.user_lists where id = '20000000-0000-0000-0000-000000000001'), 'Terror', 'A não renomeia a lista de B');
+
+insert into public.user_lists (user_id, name)
+  select '00000000-0000-0000-0000-00000000000a', 'Lista ' || g from generate_series(1, 50) g;
+select throws_ok(
+  $$ insert into public.user_lists (user_id, name) values ('00000000-0000-0000-0000-00000000000a', 'Lista 51') $$,
+  '54000', null, 'limite de 50 listas por usuário'
+);
+delete from auth.users where id = '00000000-0000-0000-0000-00000000000a';
+select is((select count(*)::int from public.user_lists where user_id = '00000000-0000-0000-0000-00000000000a'), 0, 'excluir a conta apaga as listas em cascata');
 
 -- Busca sem acento e pelo título pt-BR do TMDB
 select is(public.search_normalize('Amélie AÇÃO'), 'amelie acao', 'search_normalize tira acento e caixa');

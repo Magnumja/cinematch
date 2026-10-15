@@ -4,7 +4,8 @@ import { BrowserRouter, Link, Navigate, Outlet, Route, Routes } from 'react-rout
 import { Navbar } from './components/Navbar.tsx';
 import { TmdbAttribution } from './components/Poster.tsx';
 import { lazy, Suspense, useEffect, useState, type FormEvent } from 'react';
-import { Button, ErrorState, Skeleton } from './components/ui.tsx';
+import { Button, ErrorState } from './components/ui.tsx';
+import { PageSkeleton } from './components/Skeletons.tsx';
 import { supabase } from './lib/api.ts';
 import { browserLocale, LocaleProvider, useI18n } from './lib/i18n.tsx';
 import { SessionProvider, useSession } from './lib/session.tsx';
@@ -21,6 +22,7 @@ const pages = {
   Profile: () => import('./pages/Profile.tsx'),
   Search: () => import('./pages/Search.tsx'),
   About: () => import('./pages/About.tsx'),
+  ListDetail: () => import('./pages/ListDetail.tsx'),
 };
 const Discover = lazy(pages.Discover);
 const MovieDetail = lazy(pages.MovieDetail);
@@ -29,6 +31,7 @@ const Onboarding = lazy(pages.Onboarding);
 const Profile = lazy(pages.Profile);
 const Search = lazy(pages.Search);
 const About = lazy(pages.About);
+const ListDetail = lazy(pages.ListDetail);
 
 function usePrefetchPages() {
   useEffect(() => {
@@ -44,7 +47,7 @@ function usePrefetchPages() {
   }, []);
 }
 
-const PageFallback = () => <Skeleton className="h-64" />;
+const PageFallback = () => <PageSkeleton />;
 
 function Layout() {
   const { t } = useI18n();
@@ -55,7 +58,7 @@ function Layout() {
         {t('nav.skip')}
       </a>
       <Navbar />
-      <main id="main" className="page-stage mx-auto max-w-6xl px-5 py-10 sm:px-8 sm:py-14">
+      <main id="main" className="page-stage mx-auto max-w-6xl px-5 py-6 sm:px-8 sm:py-14">
         <Suspense fallback={<PageFallback />}>
           <Outlet />
         </Suspense>
@@ -64,7 +67,7 @@ function Layout() {
         <p>{t('movie.source')}</p>
         <TmdbAttribution />
         <Link to="/about" className="block underline underline-offset-4 hover:text-paper">{t('nav.about')}</Link>
-        <span className="mt-3 block">UI: <a href="https://ui.unlumen.com" className="underline underline-offset-4 hover:text-paper">Unlumen UI</a> · <a href="https://skiper-ui.com" className="underline underline-offset-4 hover:text-paper">Skiper UI</a></span></footer>
+      </footer>
     </>
   );
 }
@@ -118,7 +121,7 @@ function Gate() {
   if (loading) {
     content = (
       <div className="mx-auto max-w-6xl px-5 py-24 sm:px-8">
-        <Skeleton className="h-64" />
+        <PageSkeleton />
       </div>
     );
   } else if (session && recovering) {
@@ -157,6 +160,7 @@ function Gate() {
           <Route path="profile" element={<Profile />} />
           <Route path="movie/:id" element={<MovieDetail />} />
           <Route path="about" element={<About />} />
+          <Route path="lists/:id" element={<ListDetail />} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Route>
       </Routes>

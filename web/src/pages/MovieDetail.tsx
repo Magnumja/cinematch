@@ -5,7 +5,9 @@ import { displayTitle } from '../../../core/db.ts';
 import type { Movie, WatchProvider } from '../../../core/schemas.ts';
 import { hueOf, MovieMeta, synopsis } from '../components/MovieCard.tsx';
 import { Backdrop, Poster, TmdbAttribution, TrailerButton, tmdbImage } from '../components/Poster.tsx';
-import { Button, ErrorState, Skeleton, setAmbient } from '../components/ui.tsx';
+import { ListPicker } from '../components/ListPicker.tsx';
+import { Button, ErrorState, setAmbient } from '../components/ui.tsx';
+import { DetailSkeleton } from '../components/Skeletons.tsx';
 import { moviesByIds, updateUserMovie } from '../lib/api.ts';
 import { useI18n } from '../lib/i18n.tsx';
 import { useUser } from '../lib/session.tsx';
@@ -34,12 +36,15 @@ export default function MovieDetail() {
     };
   }, [id]);
 
-  if (movie === undefined) return <Skeleton className="h-72" />;
+  if (movie === undefined) return <DetailSkeleton />;
   if (movie === null) return <ErrorState message={t('search.noResults')} />;
 
   const current = movie;
   const state = entries.find((e) => e.movieId === current.id);
   const description = synopsis(current, locale);
+  const hasPoster = Boolean(current.tmdb?.posterPath);
+  const shownTitle = displayTitle(current, locale);
+  const otherTitle = displayTitle(current, locale === 'pt' ? 'en' : 'pt');
   const languageNames = new Intl.DisplayNames([locale === 'pt' ? 'pt-BR' : 'en'], { type: 'language' });
 
   async function mark(patch: Parameters<typeof updateUserMovie>[2]) {
@@ -49,22 +54,23 @@ export default function MovieDetail() {
 
   return (
     <article className="reveal relative">
-      <div className="relative -mx-5 overflow-hidden px-5 py-8 sm:-mx-8 sm:px-8 sm:rounded-[28px]">
+      <div className="relative -mx-5 overflow-hidden px-5 py-4 sm:-mx-8 sm:px-8 sm:py-8 sm:rounded-[28px]">
         <Backdrop movie={current} />
-        <div className={`relative grid gap-8 md:gap-12 ${current.tmdb?.posterPath ? 'md:grid-cols-[auto_1fr]' : ''}`}>
-          <Poster movie={current} hue={hueOf(current)} size="w500" className="w-40 shadow-[0_20px_50px_#0008] sm:w-52 md:w-64" />
-          <div className="min-w-0 max-w-4xl">
-            <h1 className="font-display text-[clamp(3rem,8vw,6.5rem)] leading-[0.94] font-extrabold text-balance text-paper uppercase">
-              {displayTitle(current, locale)}
+        {/* Celular: pôster pequeno ao lado do título; a partir do tablet, pôster grande à esquerda de tudo. */}
+        <div className={`relative grid gap-x-5 gap-y-6 md:gap-x-12 ${hasPoster ? 'grid-cols-[7rem_minmax(0,1fr)] sm:grid-cols-[11rem_minmax(0,1fr)] md:grid-cols-[16rem_minmax(0,1fr)]' : 'grid-cols-1'}`}>
+          <Poster movie={current} hue={hueOf(current)} size="w500" className="col-start-1 row-start-1 w-full self-start shadow-[0_20px_50px_#0008] md:row-span-2" />
+          <div className={`@container min-w-0 row-start-1 self-center md:self-end ${hasPoster ? 'col-start-2' : ''}`}>
+            <h1 className="font-display text-[clamp(1.6rem,16cqi,6.5rem)] leading-[0.94] font-extrabold text-balance text-paper uppercase [overflow-wrap:anywhere]">
+              {shownTitle}
             </h1>
-            {current.titleEn && current.titlePt && current.titleEn !== current.titlePt && (
-              <p className="mt-3 text-fog">{locale === 'pt' ? current.titleEn : current.titlePt}</p>
-            )}
-            <div className="mt-6">
+            {otherTitle !== shownTitle && <p className="mt-2 text-sm text-fog sm:mt-3 sm:text-base">{otherTitle}</p>}
+            <div className="mt-3 sm:mt-6">
               <MovieMeta movie={current} size="md" />
             </div>
-            {current.tmdb?.taglinePt && locale === 'pt' && <p className="mt-6 text-paper/90 italic">{current.tmdb.taglinePt}</p>}
-            {description && <p className="mt-3 max-w-[60ch] text-lg text-paper/90 first-letter:uppercase">{description}</p>}
+          </div>
+          <div className={`min-w-0 max-w-4xl ${hasPoster ? 'col-span-2 md:col-span-1 md:col-start-2 md:row-start-2' : ''}`}>
+            {current.tmdb?.taglinePt && locale === 'pt' && <p className="text-paper/90 italic">{current.tmdb.taglinePt}</p>}
+            {description && <p className="mt-3 max-w-[60ch] text-base text-paper/90 first-letter:uppercase sm:text-lg">{description}</p>}
             <TrailerButton movie={current} className="mt-6" />
             <div className="mt-6 space-y-1 text-fog">
               {current.directors.length > 0 && <p>{t('movie.directedBy', { names: current.directors.map((d) => d.name).join(', ') })}</p>}
@@ -80,6 +86,7 @@ export default function MovieDetail() {
         <Button variant="primary" aria-pressed={saved.has(current.id)} onClick={() => void toggleSave(current.id)}>
           {saved.has(current.id) ? t('movie.saved') : t('movie.save')}
         </Button>
+        <ListPicker movieId={current.id} />
         <Button aria-pressed={state?.sentiment === 1} onClick={() => void mark({ sentiment: state?.sentiment === 1 ? 0 : 1, watched: true })}>
           {t('fb.liked')}
         </Button>
