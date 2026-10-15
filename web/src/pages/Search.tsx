@@ -1,4 +1,5 @@
 import { RowListSkeleton } from '../components/Skeletons.tsx';
+import { ListPicker } from '../components/ListPicker.tsx';
 import { AnimatedInput } from '../components/AnimatedInput.tsx';
 // Busca por título no catálogo (Wikidata). Sem LLM.
 import { useEffect, useState } from 'react';
@@ -62,9 +63,12 @@ export default function Search() {
                 key={m.id}
                 movie={m}
                 actions={
-                  <Button className="px-3 py-1.5" aria-pressed={saved.has(m.id)} onClick={() => void toggleSave(m.id)}>
-                    {saved.has(m.id) ? t('movie.saved') : t('movie.save')}
-                  </Button>
+                  <>
+                    <Button className="px-3 py-1.5" aria-pressed={saved.has(m.id)} onClick={() => void toggleSave(m.id)}>
+                      {saved.has(m.id) ? t('movie.saved') : t('movie.save')}
+                    </Button>
+                    <ListPicker movieId={m.id} align="right" />
+                  </>
                 }
               />
             ))}

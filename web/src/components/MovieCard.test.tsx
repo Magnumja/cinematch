@@ -6,6 +6,18 @@ import type { Feedback } from '../lib/api.ts';
 import { makeItem, makeMovie, renderWithProviders } from '../test-utils.tsx';
 import { FeedbackBar, HeroCard, MovieMeta } from './MovieCard.tsx';
 
+// O ListPicker (nos cards) usa a API de listas e a sessão; aqui só importa que renderize.
+vi.mock('../lib/api.ts', () => ({
+  ApiError: class ApiError extends Error { code = 'generic'; },
+  listMyLists: vi.fn(async () => []),
+  listsContaining: vi.fn(async () => new Set()),
+  addToList: vi.fn(),
+  removeFromList: vi.fn(),
+  createList: vi.fn(),
+}));
+vi.mock('../lib/session.tsx', () => ({ useUser: () => ({ userId: 'u1' }) }));
+
+
 const ratedMovie = makeMovie({
   ratings: [
     { source: 'metacritic', value: 8.1, raw: '81/100' },

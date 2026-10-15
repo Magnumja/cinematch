@@ -1,6 +1,6 @@
 // Home: um filme em destaque, poucas seções abaixo. Abrir a página não gera recomendação nova se já existe uma recente.
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { AnimatedLink } from '../components/skiper-ui/AnimatedLink.tsx';
+import { ArrowLink } from '../components/ArrowLink.tsx';
 import { hardFilterReason } from '../../../core/engine/filters.ts';
 import type { Constraints, Relaxable, UserMovie } from '../../../core/schemas.ts';
 import { HowItWorks } from '../components/HowItWorks.tsx';
@@ -138,7 +138,7 @@ export default function Home() {
           <p className="mt-3 hidden text-sm text-fog sm:block">{t('home.intro')}</p>
         </div>
         {/* No celular o Descobrir já está no menu: o espaço vai para o filme. */}
-        <AnimatedLink to="/discover" className="hidden min-h-11 items-center gap-4 rounded-full border border-matte px-5 text-sm hover:border-fog sm:inline-flex">{t('nav.discover')}</AnimatedLink>
+        <ArrowLink to="/discover" className="hidden min-h-11 items-center gap-4 rounded-full border border-matte px-5 text-sm hover:border-fog sm:inline-flex">{t('nav.discover')}</ArrowLink>
       </header>
       <section aria-live="polite">
         {loading ? (
@@ -195,7 +195,7 @@ export default function Home() {
           )}
         </div>
         <div>
-          <SectionTitle action={<AnimatedLink to="/list" className="text-sm text-fog hover:text-paper">{t('home.seeList')}</AnimatedLink>}>{t('home.saved')}</SectionTitle>
+          <SectionTitle action={<ArrowLink to="/list" className="text-sm text-fog hover:text-paper">{t('home.seeList')}</ArrowLink>}>{t('home.saved')}</SectionTitle>
           {savedEntries.length === 0 ? (
             <p className="text-fog">{t('home.savedEmpty')}</p>
           ) : (

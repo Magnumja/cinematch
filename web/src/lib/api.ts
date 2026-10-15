@@ -245,6 +245,102 @@ export async function listUserMovies(userId: string): Promise<UserMovieEntry[]> 
   }));
 }
 
+// ---------------------------------------------------------------- Listas personalizadas (DEC-045)
+export interface UserList {
+  id: string;
+  name: string;
+  description: string | null;
+  updatedAt: string;
+  count: number;
+  // Até 4 pôsteres (caminhos do TMDB) dos filmes mais recentes, para a capa da lista.
+  covers: string[];
+}
+
+const LIST_ERRORS: Record<string, string> = { '23505': 'list_duplicate', '54000': 'list_limit', '23514': 'list_invalid' };
+function listError(error: { code?: string }): ApiError {
+  return new ApiError(LIST_ERRORS[error.code ?? ''] ?? 'generic');
+}
+
+type ListRow = {
+  id: string; name: string; description: string | null; updated_at: string;
+  items: { count: number }[]; covers: { movies: { tmdb: { posterPath?: string | null } | null } | null }[];
+};
+
+export async function listMyLists(): Promise<UserList[]> {
+  const { data, error } = await supabase
+    .from('user_lists')
+    .select('id,name,description,updated_at,items:user_list_items(count),covers:user_list_items(added_at,movies(tmdb))')
+    .order('updated_at', { ascending: false })
+    .order('added_at', { referencedTable: 'covers', ascending: false })
+    .limit(4, { referencedTable: 'covers' })
+    .limit(50);
+  if (error) throw listError(error);
+  return (data as unknown as ListRow[]).map((r) => ({
+    id: r.id,
+    name: r.name,
+    description: r.description,
+    updatedAt: r.updated_at,
+    count: r.items[0]?.count ?? 0,
+    covers: r.covers.map((c) => c.movies?.tmdb?.posterPath).filter((p): p is string => typeof p === 'string'),
+  }));
+}
+
+export async function createList(userId: string, name: string, description: string | null = null): Promise<string> {
+  const { data, error } = await supabase
+    .from('user_lists')
+    .insert({ user_id: userId, name: name.trim(), description: description?.trim() || null })
+    .select('id')
+    .single();
+  if (error) throw listError(error);
+  return (data as { id: string }).id;
+}
+
+export async function updateList(listId: string, patch: { name?: string; description?: string | null }): Promise<void> {
+  const row: Record<string, unknown> = {};
+  if (patch.name !== undefined) row.name = patch.name.trim();
+  if (patch.description !== undefined) row.description = patch.description?.trim() || null;
+  const { error } = await supabase.from('user_lists').update(row).eq('id', listId);
+  if (error) throw listError(error);
+}
+
+export async function deleteList(listId: string): Promise<void> {
+  const { error } = await supabase.from('user_lists').delete().eq('id', listId);
+  if (error) throw listError(error);
+}
+
+export async function getList(listId: string): Promise<{ list: Omit<UserList, 'count' | 'covers'>; movies: Movie[] } | null> {
+  const { data, error } = await supabase
+    .from('user_lists')
+    .select(`id,name,description,updated_at,user_list_items(added_at,movies(${MOVIE_COLUMNS}))`)
+    .eq('id', listId)
+    .order('added_at', { referencedTable: 'user_list_items', ascending: false })
+    .maybeSingle();
+  if (error) throw listError(error);
+  if (!data) return null;
+  const r = data as unknown as { id: string; name: string; description: string | null; updated_at: string; user_list_items: { movies: MovieRow }[] };
+  return {
+    list: { id: r.id, name: r.name, description: r.description, updatedAt: r.updated_at },
+    movies: r.user_list_items.map((i) => rowToMovie(i.movies)),
+  };
+}
+
+export async function addToList(listId: string, movieId: string): Promise<void> {
+  const { error } = await supabase.from('user_list_items').upsert({ list_id: listId, movie_id: movieId }, { onConflict: 'list_id,movie_id', ignoreDuplicates: true });
+  if (error) throw listError(error);
+}
+
+export async function removeFromList(listId: string, movieId: string): Promise<void> {
+  const { error } = await supabase.from('user_list_items').delete().eq('list_id', listId).eq('movie_id', movieId);
+  if (error) throw listError(error);
+}
+
+// Em quais listas do usuário o filme está (a RLS já limita às listas dele).
+export async function listsContaining(movieId: string): Promise<Set<string>> {
+  const { data, error } = await supabase.from('user_list_items').select('list_id').eq('movie_id', movieId);
+  if (error) throw listError(error);
+  return new Set((data as { list_id: string }[]).map((r) => r.list_id));
+}
+
 // Estado atual de filmes específicos (para revalidar uma recomendação gravada antes).
 export async function statesFor(userId: string, movieIds: string[]): Promise<Map<string, UserMovie>> {
   if (movieIds.length === 0) return new Map();

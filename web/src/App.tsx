@@ -22,6 +22,7 @@ const pages = {
   Profile: () => import('./pages/Profile.tsx'),
   Search: () => import('./pages/Search.tsx'),
   About: () => import('./pages/About.tsx'),
+  ListDetail: () => import('./pages/ListDetail.tsx'),
 };
 const Discover = lazy(pages.Discover);
 const MovieDetail = lazy(pages.MovieDetail);
@@ -30,6 +31,7 @@ const Onboarding = lazy(pages.Onboarding);
 const Profile = lazy(pages.Profile);
 const Search = lazy(pages.Search);
 const About = lazy(pages.About);
+const ListDetail = lazy(pages.ListDetail);
 
 function usePrefetchPages() {
   useEffect(() => {
@@ -65,7 +67,7 @@ function Layout() {
         <p>{t('movie.source')}</p>
         <TmdbAttribution />
         <Link to="/about" className="block underline underline-offset-4 hover:text-paper">{t('nav.about')}</Link>
-        <span className="mt-3 block">UI: <a href="https://ui.unlumen.com" className="underline underline-offset-4 hover:text-paper">Unlumen UI</a> · <a href="https://skiper-ui.com" className="underline underline-offset-4 hover:text-paper">Skiper UI</a></span></footer>
+      </footer>
     </>
   );
 }
@@ -158,6 +160,7 @@ function Gate() {
           <Route path="profile" element={<Profile />} />
           <Route path="movie/:id" element={<MovieDetail />} />
           <Route path="about" element={<About />} />
+          <Route path="lists/:id" element={<ListDetail />} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Route>
       </Routes>

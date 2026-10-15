@@ -138,7 +138,7 @@ button:not(:disabled), a { touch-action: manipulation; }
     background: linear-gradient(155deg, hsl(var(--film-hue) 25% 17%), var(--color-graphite) 70%);
     transition: transform 250ms var(--ease-calm), box-shadow 250ms var(--ease-calm);
   }
-  .skiper-link { display: inline-flex; align-items: center; gap: 0.5em; min-height: 2.75rem; }
+  .arrow-link { display: inline-flex; align-items: center; gap: 0.4em; min-height: 2.75rem; }
 }
 .movie-card:focus-within { outline: 2px solid var(--color-ember); outline-offset: 4px; }
 .explore-panel { background: radial-gradient(ellipse at top right, #8b74d614, transparent 70%), var(--color-graphite); }
@@ -216,20 +216,19 @@ button:not(:disabled), a { touch-action: manipulation; }
   transition: opacity 220ms var(--ease-calm), transform 220ms var(--ease-calm);
 }
 .unlumen-glow:focus-visible:not(:disabled) .unlumen-glow-layer { opacity: 0.45; }
-.skiper-link-label { position: relative; }
-.skiper-link-label::before {
-  content: ''; position: absolute; inset: auto 0 -0.2em; height: 1px; background: currentColor;
-  transform: scaleX(0); transform-origin: right;
-  transition: transform 300ms cubic-bezier(0.4, 0, 0.2, 1);
+.arrow-link-text {
+  background: linear-gradient(currentColor, currentColor) 0 100% / 0 1px no-repeat;
+  padding-bottom: 1px;
+  transition: background-size 260ms var(--ease-calm);
 }
-.skiper-link-arrow { width: 0.75em; height: 0.75em; flex-shrink: 0; opacity: 0.6; transition: transform 300ms var(--ease-calm), opacity 300ms var(--ease-calm); }
-.skiper-link:is(:hover, :focus-visible) .skiper-link-label::before { transform: scaleX(1); transform-origin: left; }
-.skiper-link:is(:hover, :focus-visible) .skiper-link-arrow { opacity: 1; }
+.arrow-link-icon { opacity: 0.6; transition: transform 260ms var(--ease-calm), opacity 260ms var(--ease-calm); }
+.arrow-link:is(:hover, :focus-visible) .arrow-link-text { background-size: 100% 1px; }
+.arrow-link:is(:hover, :focus-visible) .arrow-link-icon { opacity: 1; }
 @media (hover: hover) and (pointer: fine) {
   .unlumen-glow:hover:not(:disabled) .unlumen-glow-layer { opacity: 0.45; }
 }
 @media (prefers-reduced-motion: no-preference) {
-  .skiper-link:is(:hover, :focus-visible) .skiper-link-arrow { transform: translate(2px, -2px); }
+  .arrow-link:is(:hover, :focus-visible) .arrow-link-icon { transform: translateX(3px); }
 }
 /* Animate the incoming glyph without translating the input or caret. */
 .animated-input { caret-color: var(--color-ember); }

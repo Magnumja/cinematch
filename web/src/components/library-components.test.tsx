@@ -3,11 +3,11 @@ import { fireEvent, screen } from '@testing-library/react';
 import { expect, it, vi } from 'vitest';
 import { Route, Routes } from 'react-router-dom';
 import { renderWithProviders } from '../test-utils.tsx';
-import { AnimatedLink } from './skiper-ui/AnimatedLink.tsx';
+import { ArrowLink } from './ArrowLink.tsx';
 import { GlowButton } from './unlumen-ui/GlowButton.tsx';
 
 it('preserva navegação interna nos links animados', () => {
-  renderWithProviders(<Routes><Route path="/" element={<AnimatedLink to="/list">Minha lista</AnimatedLink>} /><Route path="/list" element={<h1>Filmes salvos</h1>} /></Routes>);
+  renderWithProviders(<Routes><Route path="/" element={<ArrowLink to="/list">Minha lista</ArrowLink>} /><Route path="/list" element={<h1>Filmes salvos</h1>} /></Routes>);
   fireEvent.click(screen.getByRole('link', { name: 'Minha lista' }));
   expect(screen.getByRole('heading', { name: 'Filmes salvos' })).toBeInTheDocument();
 });

@@ -34,10 +34,6 @@ export default function About() {
           <li>
             <a href="https://www.justwatch.com" target="_blank" rel="noreferrer" className={link}>JustWatch</a> — {t('about.justwatch')}
           </li>
-          <li>
-            {t('about.ui')} <a href="https://ui.unlumen.com" target="_blank" rel="noreferrer" className={link}>Unlumen UI</a> ·{' '}
-            <a href="https://skiper-ui.com" target="_blank" rel="noreferrer" className={link}>Skiper UI</a>
-          </li>
         </ul>
       </section>
 

@@ -5,6 +5,7 @@ import { displayTitle } from '../../../core/db.ts';
 import type { Movie, WatchProvider } from '../../../core/schemas.ts';
 import { hueOf, MovieMeta, synopsis } from '../components/MovieCard.tsx';
 import { Backdrop, Poster, TmdbAttribution, TrailerButton, tmdbImage } from '../components/Poster.tsx';
+import { ListPicker } from '../components/ListPicker.tsx';
 import { Button, ErrorState, setAmbient } from '../components/ui.tsx';
 import { DetailSkeleton } from '../components/Skeletons.tsx';
 import { moviesByIds, updateUserMovie } from '../lib/api.ts';
@@ -85,6 +86,7 @@ export default function MovieDetail() {
         <Button variant="primary" aria-pressed={saved.has(current.id)} onClick={() => void toggleSave(current.id)}>
           {saved.has(current.id) ? t('movie.saved') : t('movie.save')}
         </Button>
+        <ListPicker movieId={current.id} />
         <Button aria-pressed={state?.sentiment === 1} onClick={() => void mark({ sentiment: state?.sentiment === 1 ? 0 : 1, watched: true })}>
           {t('fb.liked')}
         </Button>

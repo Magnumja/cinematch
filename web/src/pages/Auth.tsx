@@ -100,7 +100,7 @@ export default function Auth() {
           </button>
         )}
         <p className="mt-6 border-t border-matte pt-4 text-xs text-fog">{t('auth.privacy')}</p>
-        <p className="mt-4 text-xs text-fog"><Link to="/about" className="underline underline-offset-4 hover:text-paper">{t('nav.about')}</Link> · UI: <a href="https://ui.unlumen.com" className="underline underline-offset-4 hover:text-paper">Unlumen UI</a> · <a href="https://skiper-ui.com" className="underline underline-offset-4 hover:text-paper">Skiper UI</a></p>
+        <p className="mt-4 text-xs text-fog"><Link to="/about" className="underline underline-offset-4 hover:text-paper">{t('nav.about')}</Link></p>
       </form>
     </main>
   );

@@ -11,15 +11,12 @@ Permite uso e adaptação em aplicações, inclusive comerciais. Proíbe redistr
 - `web/src/components/unlumen-ui/GlowButton.tsx`: fonte https://unlumen-ui-docs.vercel.app/docs/ui/buttons/glow. Adaptação simplificada do modo static: gradiente na paleta local, brilho só em hover/foco, sem loop contínuo; mantém um botão HTML sem wrapper de layout. O original credita Magic UI como inspiração.
 - `web/src/components/unlumen-ui/ShimmerSkeleton.tsx`: fonte https://ui.unlumen.com/r/shimmer-skeleton.json. Mantém a API (`rounded`, `animate`) e a faixa de luz em `translateX`. Adaptações: sem `cn`, cores da paleta local, keyframes `unlumen-shimmer` em `styles.css` (sem `<style>` inline), peças `aria-hidden` (o contêiner de cada layout em `Skeletons.tsx` é que tem `role="status"`), sem animação com movimento reduzido.
 
-## Skiper UI — @gurvinder-singh02
+## Skiper UI (removido em 2026-10-16)
 
-Fonte: https://skiper-ui.com/r/skiper40.json
-Página: https://skiper-ui.com/v1/skiper40
-Licença e uso: https://skiper-ui.com/docs/quick-start
-
-`web/src/components/skiper-ui/AnimatedLink.tsx` adapta Link001 (Skiper 40): sublinhado direcional e seta animada. Substitui âncora/Next Link por React Router Link; adiciona foco de teclado, seta visível em dispositivos de toque e movimento reduzido. O original credita Cursor como inspiração de uma recriação independente.
-
-Uso e modificação gratuitos em projetos pessoais/comerciais exigem atribuição à Skiper UI. Crédito visível incluído na entrada e no rodapé do app, além deste registro.
+O `AnimatedLink` adaptado do Skiper 40 foi substituído por `web/src/components/ArrowLink.tsx`, implementação própria
+(sublinhado por `background-size` e seta tipográfica). A licença gratuita do Skiper exige atribuição visível; sem código
+deles no app, o crédito saiu do rodapé, da entrada e da página Sobre, a pedido do responsável.
+A atribuição ao Unlumen não é exigida para componentes gratuitos (licença acima), então também não aparece na interface.
 
 ## Dependências
 

@@ -1,11 +1,23 @@
 // @vitest-environment jsdom
 import { fireEvent, screen } from '@testing-library/react';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import type { TmdbInfo } from '../../../core/schemas.ts';
 import { makeMovie, renderWithProviders } from '../test-utils.tsx';
 import { synopsis } from './MovieCard.tsx';
 import { displayTitle } from '../../../core/db.ts';
 import { Poster, ProviderBadges, TmdbAttribution, TrailerButton, tmdbImage } from './Poster.tsx';
+
+// O ListPicker (nos cards) usa a API de listas e a sessão; aqui só importa que renderize.
+vi.mock('../lib/api.ts', () => ({
+  ApiError: class ApiError extends Error { code = 'generic'; },
+  listMyLists: vi.fn(async () => []),
+  listsContaining: vi.fn(async () => new Set()),
+  addToList: vi.fn(),
+  removeFromList: vi.fn(),
+  createList: vi.fn(),
+}));
+vi.mock('../lib/session.tsx', () => ({ useUser: () => ({ userId: 'u1' }) }));
+
 
 const tmdb: TmdbInfo = {
   posterPath: '/p.jpg', backdropPath: null, overviewPt: 'Sinopse em português.', overviewEn: null, taglinePt: null,

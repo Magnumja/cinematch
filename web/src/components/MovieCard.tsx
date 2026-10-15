@@ -1,7 +1,7 @@
 // Cards tipográficos (sem pôster, DEC-008). O título em fonte de letreiro é a "imagem" do filme.
 import { useState, type CSSProperties, type ReactNode } from 'react';
 import { Tilt } from './unlumen-ui/Tilt.tsx';
-import { AnimatedLink } from './skiper-ui/AnimatedLink.tsx';
+import { ArrowLink } from './ArrowLink.tsx';
 import { Link } from 'react-router-dom';
 import { displayTitle, tmdbUserScore } from '../../../core/db.ts';
 import { GENRE_HUES, GENRE_LABELS, type Genre } from '../../../core/domain/genres.ts';
@@ -12,6 +12,7 @@ import type { Feedback, RecItem } from '../lib/api.ts';
 import { useI18n } from '../lib/i18n.tsx';
 import { Button, setAmbient } from './ui.tsx';
 import { Backdrop, Poster, ProviderBadges, TrailerButton } from './Poster.tsx';
+import { ListPicker } from './ListPicker.tsx';
 
 const SOURCE_NAMES = { rotten_tomatoes: 'Rotten Tomatoes', metacritic: 'Metacritic' } as const;
 
@@ -215,9 +216,9 @@ export function HeroCard({ item, movie, movies, saved, onSave, onFeedback, onAno
           {description && <p className="mt-3 line-clamp-3 max-w-[60ch] text-fog first-letter:uppercase sm:line-clamp-4">{description}</p>}
           <div className="mt-5 flex flex-wrap items-center gap-4">
             <TrailerButton movie={movie} />
-            <AnimatedLink to={`/movie/${movie.id}`} className="text-sm text-fog hover:text-paper">
+            <ArrowLink to={`/movie/${movie.id}`} className="text-sm text-fog hover:text-paper">
               {t('movie.details')}
-            </AnimatedLink>
+            </ArrowLink>
           </div>
         </div>
 
@@ -240,6 +241,7 @@ export function HeroCard({ item, movie, movies, saved, onSave, onFeedback, onAno
               <Button onClick={onAnother} disabled={busy}>
                 {t('movie.another')}
               </Button>
+              <ListPicker movieId={movie.id} align="right" />
             </div>
             <FeedbackBar key={item.itemId ?? item.movieId} onFeedback={onFeedback} current={item.feedback} />
           </div>
@@ -280,10 +282,11 @@ export function CompactCard({ item, movie, movies, saved, onSave, entranceDelay 
         <ProviderBadges movie={movie} max={2} className="mt-3" />
         {reason && <p className="mt-3 text-sm text-paper/85">{reason}</p>}
       </div>
-      <div className="relative z-10">
+      <div className="relative z-10 flex flex-wrap gap-2">
         <Button onClick={onSave} aria-pressed={saved} className="px-3 py-1.5">
           {saved ? t('movie.saved') : t('movie.save')}
         </Button>
+        <ListPicker movieId={movie.id} />
       </div>
     </article>
     </Tilt>
