@@ -11,7 +11,7 @@ import { FEEDBACK_TAGS, type FeedbackTag, type Movie } from '../../../core/schem
 import type { Feedback, RecItem } from '../lib/api.ts';
 import { useI18n } from '../lib/i18n.tsx';
 import { Button, setAmbient } from './ui.tsx';
-import { Backdrop, Poster, ProviderBadges, TrailerLink } from './Poster.tsx';
+import { Backdrop, Poster, ProviderBadges, TrailerButton } from './Poster.tsx';
 
 const SOURCE_NAMES = { rotten_tomatoes: 'Rotten Tomatoes', metacritic: 'Metacritic' } as const;
 
@@ -207,7 +207,7 @@ export function HeroCard({ item, movie, movies, saved, onSave, onFeedback, onAno
           {movie.tmdb?.taglinePt && locale === 'pt' && <p className="mt-5 text-paper/90 italic">{movie.tmdb.taglinePt}</p>}
           {description && <p className="mt-3 line-clamp-4 max-w-[60ch] text-fog first-letter:uppercase">{description}</p>}
           <div className="mt-6 flex flex-wrap items-center gap-4">
-            <TrailerLink movie={movie} />
+            <TrailerButton movie={movie} />
             <AnimatedLink to={`/movie/${movie.id}`} className="text-sm text-fog hover:text-paper">
               {t('movie.details')}
             </AnimatedLink>

@@ -83,6 +83,8 @@ const pt = {
   'watch.rentOnly': 'Só para alugar ou comprar',
   'watch.noneShort': 'Fora dos streamings no Brasil',
   'movie.trailer': 'Trailer',
+  'movie.trailerClose': 'Fechar',
+  'movie.trailerYoutube': 'Abrir no YouTube',
   'how.short': 'Um filme por vez, escolhido pelas suas regras e explicado. Suas respostas ajustam as próximas sugestões.',
   'how.more': 'Como funciona',
 
@@ -299,6 +301,8 @@ const en: Record<MessageKey, string> = {
   'watch.rentOnly': 'Rent or buy only',
   'watch.noneShort': 'Not streaming in Brazil',
   'movie.trailer': 'Trailer',
+  'movie.trailerClose': 'Close',
+  'movie.trailerYoutube': 'Open on YouTube',
   'how.short': 'One film at a time, picked by your rules and explained. Your answers tune the next suggestions.',
   'how.more': 'How it works',
 

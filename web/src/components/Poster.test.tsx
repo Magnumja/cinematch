@@ -5,7 +5,7 @@ import type { TmdbInfo } from '../../../core/schemas.ts';
 import { makeMovie, renderWithProviders } from '../test-utils.tsx';
 import { synopsis } from './MovieCard.tsx';
 import { displayTitle } from '../../../core/db.ts';
-import { Poster, ProviderBadges, TmdbAttribution, TrailerLink, tmdbImage } from './Poster.tsx';
+import { Poster, ProviderBadges, TmdbAttribution, TrailerButton, tmdbImage } from './Poster.tsx';
 
 const tmdb: TmdbInfo = {
   posterPath: '/p.jpg', backdropPath: null, overviewPt: 'Sinopse em português.', overviewEn: null, taglinePt: null,
@@ -85,11 +85,18 @@ describe('ProviderBadges', () => {
   });
 });
 
-describe('TrailerLink', () => {
-  it('abre o trailer no YouTube e some quando não há trailer', () => {
-    renderWithProviders(<TrailerLink movie={makeMovie({ tmdb: { ...tmdb, trailerKey: 'abc123XYZ_-' } })} />);
-    expect(screen.getByRole('link', { name: /Trailer/ })).toHaveAttribute('href', 'https://www.youtube.com/watch?v=abc123XYZ_-');
-    const { container } = renderWithProviders(<TrailerLink movie={makeMovie({ tmdb })} />);
+describe('TrailerButton', () => {
+  it('só carrega o player do YouTube (sem cookies) depois do clique', () => {
+    renderWithProviders(<TrailerButton movie={makeMovie({ tmdb: { ...tmdb, trailerKey: 'abc123XYZ_-' } })} />);
+    expect(document.querySelector('iframe')).toBeNull();
+    fireEvent.click(screen.getByRole('button', { name: /Trailer/ }));
+    expect(document.querySelector('iframe')?.getAttribute('src')).toContain('https://www.youtube-nocookie.com/embed/abc123XYZ_-');
+    fireEvent.click(screen.getByText('Fechar'));
+    expect(document.querySelector('iframe')).toBeNull();
+  });
+
+  it('some quando não há trailer', () => {
+    const { container } = renderWithProviders(<TrailerButton movie={makeMovie({ tmdb })} />);
     expect(container).toBeEmptyDOMElement();
   });
 });

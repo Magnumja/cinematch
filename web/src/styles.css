@@ -248,3 +248,13 @@ button:not(:disabled), a { touch-action: manipulation; }
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation: none !important; transition: none !important; scroll-behavior: auto !important; }
 }
+
+/* Trailer: brilho ambiente "respirando" atrás do player (DEC-044). Sem animação para quem pede menos movimento. */
+@keyframes ambient-breathe {
+  0%, 100% { opacity: 0.55; transform: scale(1.08); }
+  50% { opacity: 0.8; transform: scale(1.16); }
+}
+@media (prefers-reduced-motion: no-preference) {
+  .trailer-ambient { animation: ambient-breathe 7s ease-in-out infinite; }
+}
+.trailer-dialog[open] { animation: reveal 0.35s var(--ease-calm, ease-out) both; }

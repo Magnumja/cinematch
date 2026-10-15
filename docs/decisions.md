@@ -336,6 +336,17 @@ Status possíveis:
   - Qualquer receita futura (anúncio, assinatura, afiliado) exige contrato comercial.
   - Usar `/recommendations` do TMDB para ranquear (pacote 2) também precisa ser avaliado contra a proibição de "derivatives".
 
+### DEC-044 — Trailer dentro do app com brilho ambiente (2026-10-15)
+- **Status:** Aprovado · **Data:** 2026-10-15
+- **Decisão:** o botão "Trailer" abre um diálogo com o player oficial do YouTube (`youtube-nocookie.com/embed`). Atrás do player
+  fica um brilho ambiente feito com a imagem de fundo do filme, desfocada e "respirando"; ele não anima para quem pede menos movimento.
+- **Por que não o Video Ambient do Unlumen:** o brilho dele amostra os quadros de um `<video>` com arquivo próprio. O TMDB só fornece
+  o id do YouTube, o player do YouTube é um iframe de outra origem (o navegador bloqueia a leitura dos pixels) e baixar o vídeo violaria
+  os termos do YouTube. Componente próprio, inspirado no visual, sem código copiado.
+- **Privacidade:** o iframe só existe com o diálogo aberto; fechar remove o player e interrompe o vídeo. A política de privacidade cita o YouTube.
+- **CSP:** `frame-src https://www.youtube-nocookie.com`. O YouTube exige o Referer da página (erro 153 sem ele); a política
+  `strict-origin-when-cross-origin` envia a origem. "Abrir no YouTube" fica como alternativa.
+
 ## Pendências abertas
 
 | Item | Situação |
