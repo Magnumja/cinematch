@@ -48,9 +48,11 @@ describe('synopsis', () => {
     expect(synopsis(makeMovie({ tmdb: { ...tmdb, overviewPt: null, overviewEn: 'A trial.' }, descriptionPt: null }), 'pt')).toBe('A trial.');
   });
 
-  it('título em PT usa o do TMDB quando o Wikidata não tem rótulo em português', () => {
-    expect(displayTitle(makeMovie({ titlePt: null, titleEn: 'Borat', tmdb: { ...tmdb, titlePt: 'Borat: O Segundo Melhor Repórter' } }), 'pt')).toBe('Borat: O Segundo Melhor Repórter');
-    expect(displayTitle(makeMovie({ titlePt: 'Ilha do Medo', tmdb: { ...tmdb, titlePt: 'Outro' } }), 'pt')).toBe('Ilha do Medo');
+  it('título em PT prefere o de lançamento no Brasil (TMDB) e cai para o Wikidata', () => {
+    expect(displayTitle(makeMovie({ titlePt: 'The Godfather', tmdb: { ...tmdb, titlePt: 'O Poderoso Chefão' } }), 'pt')).toBe('O Poderoso Chefão');
+    expect(displayTitle(makeMovie({ titlePt: 'Ilha do Medo', tmdb: { ...tmdb, titlePt: null } }), 'pt')).toBe('Ilha do Medo');
+    expect(displayTitle(makeMovie({ titlePt: null, titleEn: 'Borat', tmdb: null }), 'pt')).toBe('Borat');
+    expect(displayTitle(makeMovie({ titleEn: 'The Godfather', tmdb: { ...tmdb, titlePt: 'O Poderoso Chefão' } }), 'en')).toBe('The Godfather');
   });
 });
 

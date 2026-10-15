@@ -114,9 +114,10 @@ export function rowToUserMovie(row: UserMovieRow): UserMovie {
   });
 }
 
-// Em PT, sem rótulo pt no Wikidata, usa o título pt-BR do TMDB antes de cair para o inglês.
+// Em PT, o título de lançamento no Brasil (tradução pt-BR do TMDB) vem antes do rótulo pt do Wikidata, que às vezes
+// é o título original ("The Godfather") ou o de Portugal.
 export function displayTitle(m: Pick<Movie, 'titlePt' | 'titleEn'> & { tmdb?: Movie['tmdb'] }, locale: 'pt' | 'en'): string {
-  return (locale === 'pt' ? (m.titlePt ?? m.tmdb?.titlePt ?? m.titleEn) : (m.titleEn ?? m.titlePt)) ?? '';
+  return (locale === 'pt' ? (m.tmdb?.titlePt ?? m.titlePt ?? m.titleEn) : (m.titleEn ?? m.titlePt)) ?? '';
 }
 
 // Chave de período no fuso do usuário: impede duas recomendações agendadas no mesmo dia/semana/mês.
