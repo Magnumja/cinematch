@@ -11,7 +11,7 @@ import { FEEDBACK_TAGS, type FeedbackTag, type Movie } from '../../../core/schem
 import type { Feedback, RecItem } from '../lib/api.ts';
 import { useI18n } from '../lib/i18n.tsx';
 import { Button, setAmbient } from './ui.tsx';
-import { Backdrop, Poster } from './Poster.tsx';
+import { Backdrop, Poster, ProviderBadges, TrailerLink } from './Poster.tsx';
 
 const SOURCE_NAMES = { rotten_tomatoes: 'Rotten Tomatoes', metacritic: 'Metacritic', tmdb: 'TMDB' } as const;
 
@@ -19,11 +19,13 @@ export function hueOf(movie: Movie): number {
   return GENRE_HUES[(movie.genres[0] as Genre | undefined) ?? 'drama'];
 }
 
-// Sinopse do TMDB no idioma da interface; sem ela, a descrição curta do Wikidata. Nunca mistura idiomas à toa.
+// Sinopse do TMDB no idioma da interface; sem ela, a descrição curta do Wikidata no mesmo idioma; por último a
+// sinopse do TMDB no outro idioma. A descrição do Wikidata em outro idioma ("1957 film by…") não informa nada: fica de fora.
 export function synopsis(movie: Movie, locale: 'pt' | 'en'): string | null {
   const tm = movie.tmdb;
-  const own = locale === 'pt' ? (tm?.overviewPt ?? movie.descriptionPt) : (tm?.overviewEn ?? movie.descriptionEn);
-  return own ?? (locale === 'pt' ? (tm?.overviewEn ?? movie.descriptionEn) : (tm?.overviewPt ?? movie.descriptionPt)) ?? null;
+  return (locale === 'pt'
+    ? (tm?.overviewPt ?? movie.descriptionPt ?? tm?.overviewEn)
+    : (tm?.overviewEn ?? movie.descriptionEn ?? tm?.overviewPt)) ?? null;
 }
 
 export function MovieMeta({ movie, size = 'sm' }: { movie: Movie; size?: 'sm' | 'md' }) {
@@ -178,7 +180,7 @@ export function HeroCard({ item, movie, movies, saved, onSave, onFeedback, onAno
     >
       <Backdrop movie={movie} />
       <div aria-hidden="true" className="absolute inset-y-0 left-0 w-1.5" style={{ background: `hsl(${hueOf(movie)} 55% 50% / 0.8)` }} />
-      <div className="relative grid gap-10 p-7 sm:p-10 lg:grid-cols-[auto_1.4fr_1fr] lg:gap-12 lg:p-14">
+      <div className={`relative grid gap-10 p-7 sm:p-10 lg:gap-12 lg:p-14 ${movie.tmdb?.posterPath ? 'lg:grid-cols-[auto_1.4fr_1fr]' : 'lg:grid-cols-[1.4fr_1fr]'}`}>
         <Poster movie={movie} hue={hueOf(movie)} size="w500" className="w-36 shadow-[0_20px_50px_#0008] sm:w-44 lg:w-56 lg:self-start" />
         <div className="min-w-0">
           <div className="flex flex-wrap items-center gap-x-5 gap-y-2">
@@ -194,11 +196,15 @@ export function HeroCard({ item, movie, movies, saved, onSave, onFeedback, onAno
           <div className="mt-6">
             <MovieMeta movie={movie} size="md" />
           </div>
-          {movie.tmdb?.taglinePt && locale === 'pt' && <p className="mt-4 text-paper/90 italic">{movie.tmdb.taglinePt}</p>}
-          {description && <p className="mt-3 line-clamp-5 max-w-[60ch] text-fog first-letter:uppercase">{description}</p>}
-          <AnimatedLink to={`/movie/${movie.id}`} className="mt-6 text-sm text-fog hover:text-paper">
-            {t('movie.details')}
-          </AnimatedLink>
+          <ProviderBadges movie={movie} className="mt-4" />
+          {movie.tmdb?.taglinePt && locale === 'pt' && <p className="mt-5 text-paper/90 italic">{movie.tmdb.taglinePt}</p>}
+          {description && <p className="mt-3 line-clamp-4 max-w-[60ch] text-fog first-letter:uppercase">{description}</p>}
+          <div className="mt-6 flex flex-wrap items-center gap-4">
+            <TrailerLink movie={movie} />
+            <AnimatedLink to={`/movie/${movie.id}`} className="text-sm text-fog hover:text-paper">
+              {t('movie.details')}
+            </AnimatedLink>
+          </div>
         </div>
 
         <div className="hero-reasons flex flex-col justify-between gap-8 rounded-2xl border border-paper/10 bg-ink/35 p-5 sm:p-6">
@@ -257,6 +263,7 @@ export function CompactCard({ item, movie, movies, saved, onSave, entranceDelay 
         <div className="mt-3">
           <MovieMeta movie={movie} />
         </div>
+        <ProviderBadges movie={movie} max={2} className="mt-3" />
         {reason && <p className="mt-3 text-sm text-paper/85">{reason}</p>}
       </div>
       <div className="relative z-10">
@@ -279,7 +286,7 @@ export function MovieRowItem({ movie, actions }: { movie: Movie; actions?: React
       className="flex flex-col gap-3 border-b border-matte py-4 sm:flex-row sm:items-center sm:justify-between"
     >
       <div className="flex min-w-0 items-start gap-4">
-        <Poster movie={movie} hue={hueOf(movie)} size="w92" className="w-12 rounded-md" />
+        <Poster movie={movie} hue={hueOf(movie)} size="w92" className="w-12 rounded-md" fallback />
         <div className="min-w-0">
           <Link to={`/movie/${movie.id}`} className="font-display text-2xl leading-none font-bold text-paper uppercase hover:text-ember">
             {displayTitle(movie, locale)}

@@ -122,8 +122,9 @@ export function rowToUserMovie(row: UserMovieRow): UserMovie {
   });
 }
 
-export function displayTitle(m: Pick<Movie, 'titlePt' | 'titleEn'>, locale: 'pt' | 'en'): string {
-  return (locale === 'pt' ? (m.titlePt ?? m.titleEn) : (m.titleEn ?? m.titlePt)) ?? '';
+// Em PT, sem rótulo pt no Wikidata, usa o título pt-BR do TMDB antes de cair para o inglês.
+export function displayTitle(m: Pick<Movie, 'titlePt' | 'titleEn'> & { tmdb?: Movie['tmdb'] }, locale: 'pt' | 'en'): string {
+  return (locale === 'pt' ? (m.titlePt ?? m.tmdb?.titlePt ?? m.titleEn) : (m.titleEn ?? m.titlePt)) ?? '';
 }
 
 // Chave de período no fuso do usuário: impede duas recomendações agendadas no mesmo dia/semana/mês.

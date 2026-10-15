@@ -14,6 +14,15 @@ describe('mapTmdbMovie', () => {
         translations: [
           { iso_639_1: 'es', iso_3166_1: 'ES', data: { overview: 'Un detective.' } },
           { iso_639_1: 'en', iso_3166_1: 'US', data: { overview: 'A detective investigates.' } },
+          { iso_639_1: 'pt', iso_3166_1: 'BR', data: { title: 'O Detetive', overview: 'Um detetive investiga.' } },
+        ],
+      },
+      videos: {
+        results: [
+          { site: 'Vimeo', type: 'Trailer', key: 'vimeo12345', official: true, iso_639_1: 'pt' },
+          { site: 'YouTube', type: 'Teaser', key: 'teaser12345', official: true, iso_639_1: 'pt' },
+          { site: 'YouTube', type: 'Trailer', key: 'enOfficial1', official: true, iso_639_1: 'en' },
+          { site: 'YouTube', type: 'Trailer', key: 'ptFanMade01', official: false, iso_639_1: 'pt' },
         ],
       },
       'watch/providers': {
@@ -45,6 +54,8 @@ describe('mapTmdbMovie', () => {
         { type: 'rent', name: 'Apple TV', logoPath: null },
       ],
       watchLink: 'https://www.themoviedb.org/movie/1/watch?locale=BR',
+      titlePt: 'O Detetive',
+      trailerKey: 'ptFanMade01',
     });
   });
 

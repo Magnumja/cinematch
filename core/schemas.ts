@@ -38,6 +38,9 @@ export const TmdbInfoSchema = z.object({
   voteCount: z.number().int().nonnegative(),
   providers: z.array(WatchProviderSchema),
   watchLink: z.string().nullable(),
+  // Adicionados depois da primeira carga: linhas antigas não têm (undefined = sem dado).
+  titlePt: z.string().nullable().optional(), // título pt-BR das traduções do TMDB
+  trailerKey: z.string().regex(/^[\w-]{6,32}$/).nullable().optional(), // id do vídeo no YouTube
 });
 export type TmdbInfo = z.infer<typeof TmdbInfoSchema>;
 

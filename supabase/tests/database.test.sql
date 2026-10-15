@@ -2,7 +2,7 @@
 -- Rodar com: npx supabase test db
 begin;
 create extension if not exists pgtap with schema extensions;
-select plan(51);
+select plan(53);
 
 -- Dados de teste (sintéticos).
 insert into auth.users (id, email) values
@@ -254,6 +254,11 @@ select ok(
 set local role anon;
 select throws_ok($$ select public.export_my_data() $$, '42501', null, 'anônimo não exporta dados');
 reset role;
+
+-- Busca sem acento e pelo título pt-BR do TMDB
+select is(public.search_normalize('Amélie AÇÃO'), 'amelie acao', 'search_normalize tira acento e caixa');
+update public.movies set tmdb = coalesce(tmdb, '{}'::jsonb) || '{"titlePt": "Título Só No TMDB"}' where id = 'Q999999992';
+select ok((select search_text like '%titulo so no tmdb%' from public.movies where id = 'Q999999992'), 'busca inclui o título pt-BR do TMDB, sem acento');
 
 select * from finish();
 rollback;

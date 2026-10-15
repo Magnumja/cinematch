@@ -4,7 +4,7 @@ import { useParams } from 'react-router-dom';
 import { displayTitle } from '../../../core/db.ts';
 import type { Movie, WatchProvider } from '../../../core/schemas.ts';
 import { hueOf, MovieMeta, synopsis } from '../components/MovieCard.tsx';
-import { Backdrop, Poster, TmdbAttribution, tmdbImage } from '../components/Poster.tsx';
+import { Backdrop, Poster, TmdbAttribution, TrailerLink, tmdbImage } from '../components/Poster.tsx';
 import { Button, ErrorState, Skeleton, setAmbient } from '../components/ui.tsx';
 import { moviesByIds, updateUserMovie } from '../lib/api.ts';
 import { useI18n } from '../lib/i18n.tsx';
@@ -51,7 +51,7 @@ export default function MovieDetail() {
     <article className="reveal relative">
       <div className="relative -mx-5 overflow-hidden px-5 py-8 sm:-mx-8 sm:px-8 sm:rounded-[28px]">
         <Backdrop movie={current} />
-        <div className="relative grid gap-8 md:grid-cols-[auto_1fr] md:gap-12">
+        <div className={`relative grid gap-8 md:gap-12 ${current.tmdb?.posterPath ? 'md:grid-cols-[auto_1fr]' : ''}`}>
           <Poster movie={current} hue={hueOf(current)} size="w500" className="w-40 shadow-[0_20px_50px_#0008] sm:w-52 md:w-64" />
           <div className="min-w-0 max-w-4xl">
             <h1 className="font-display text-[clamp(3rem,8vw,6.5rem)] leading-[0.94] font-extrabold text-balance text-paper uppercase">
@@ -65,6 +65,7 @@ export default function MovieDetail() {
             </div>
             {current.tmdb?.taglinePt && locale === 'pt' && <p className="mt-6 text-paper/90 italic">{current.tmdb.taglinePt}</p>}
             {description && <p className="mt-3 max-w-[60ch] text-lg text-paper/90 first-letter:uppercase">{description}</p>}
+            <TrailerLink movie={current} className="mt-6" />
             <div className="mt-6 space-y-1 text-fog">
               {current.directors.length > 0 && <p>{t('movie.directedBy', { names: current.directors.map((d) => d.name).join(', ') })}</p>}
               {current.languages.length > 0 && <p>{t('movie.originalLanguage', { langs: current.languages.map((l) => languageNames.of(l) ?? l).join(', ') })}</p>}

@@ -149,7 +149,6 @@ export default function Home() {
         </div>
         <AnimatedLink to="/discover" className="inline-flex min-h-11 items-center gap-4 rounded-full border border-matte px-5 text-sm hover:border-fog">{t('nav.discover')}</AnimatedLink>
       </header>
-      <HowItWorks />
       <section aria-live="polite">
         {loading ? (
           <HeroSkeleton label={t('home.generating')} />
@@ -175,6 +174,8 @@ export default function Home() {
           />
         ) : null}
       </section>
+
+      <HowItWorks />
 
       {view && rest.length > 0 && (
         <section>

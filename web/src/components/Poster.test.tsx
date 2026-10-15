@@ -4,7 +4,8 @@ import { describe, expect, it } from 'vitest';
 import type { TmdbInfo } from '../../../core/schemas.ts';
 import { makeMovie, renderWithProviders } from '../test-utils.tsx';
 import { synopsis } from './MovieCard.tsx';
-import { Poster, TmdbAttribution, tmdbImage } from './Poster.tsx';
+import { displayTitle } from '../../../core/db.ts';
+import { Poster, ProviderBadges, TmdbAttribution, TrailerLink, tmdbImage } from './Poster.tsx';
 
 const tmdb: TmdbInfo = {
   posterPath: '/p.jpg', backdropPath: null, overviewPt: 'Sinopse em português.', overviewEn: null, taglinePt: null,
@@ -17,8 +18,10 @@ describe('Poster', () => {
     expect(screen.getByRole('img')).toHaveAttribute('src', 'https://image.tmdb.org/t/p/w185/p.jpg');
   });
 
-  it('sem pôster (ou com erro ao carregar) mostra só o título, sem imagem inventada', () => {
-    const { container } = renderWithProviders(<Poster movie={makeMovie({ tmdb: null })} hue={10} />);
+  it('sem pôster (ou com erro ao carregar) não inventa imagem: some, ou mostra só o título com fallback', () => {
+    const empty = renderWithProviders(<Poster movie={makeMovie({ tmdb: null })} hue={10} />);
+    expect(empty.container).toBeEmptyDOMElement();
+    const { container } = renderWithProviders(<Poster movie={makeMovie({ tmdb: null })} hue={10} fallback />);
     expect(container.querySelector('img')).toBeNull();
     expect(container.textContent).toContain('O Grande Teste');
 
@@ -39,6 +42,16 @@ describe('synopsis', () => {
     expect(synopsis(m, 'en')).toBe('2001 film');
     expect(synopsis(makeMovie({ tmdb: null, descriptionPt: null, descriptionEn: null }), 'pt')).toBeNull();
   });
+
+  it('não mostra a descrição do Wikidata em outro idioma', () => {
+    expect(synopsis(makeMovie({ tmdb: null, descriptionPt: null, descriptionEn: '1957 film by Billy Wilder' }), 'pt')).toBeNull();
+    expect(synopsis(makeMovie({ tmdb: { ...tmdb, overviewPt: null, overviewEn: 'A trial.' }, descriptionPt: null }), 'pt')).toBe('A trial.');
+  });
+
+  it('título em PT usa o do TMDB quando o Wikidata não tem rótulo em português', () => {
+    expect(displayTitle(makeMovie({ titlePt: null, titleEn: 'Borat', tmdb: { ...tmdb, titlePt: 'Borat: O Segundo Melhor Repórter' } }), 'pt')).toBe('Borat: O Segundo Melhor Repórter');
+    expect(displayTitle(makeMovie({ titlePt: 'Ilha do Medo', tmdb: { ...tmdb, titlePt: 'Outro' } }), 'pt')).toBe('Ilha do Medo');
+  });
 });
 
 describe('TmdbAttribution', () => {
@@ -46,5 +59,35 @@ describe('TmdbAttribution', () => {
     renderWithProviders(<TmdbAttribution />);
     expect(screen.getByAltText('TMDB')).toBeInTheDocument();
     expect(screen.getByText(/não é endossado nem certificado pelo TMDB/)).toBeInTheDocument();
+  });
+});
+
+describe('ProviderBadges', () => {
+  it('mostra os serviços inclusos, sem repetir, com o crédito ao JustWatch', () => {
+    const movie = makeMovie({ tmdb: { ...tmdb, providers: [
+      { type: 'flatrate', name: 'Netflix', logoPath: '/n.png' },
+      { type: 'ads', name: 'Netflix', logoPath: '/n.png' },
+      { type: 'rent', name: 'Apple TV', logoPath: null },
+    ] } });
+    renderWithProviders(<ProviderBadges movie={movie} />);
+    expect(screen.getAllByText('Netflix')).toHaveLength(1);
+    expect(screen.queryByText('Apple TV')).not.toBeInTheDocument();
+    expect(screen.getByText('via JustWatch')).toBeInTheDocument();
+  });
+
+  it('só aluguel: avisa em vez de listar; sem dados do TMDB: não mostra nada', () => {
+    renderWithProviders(<ProviderBadges movie={makeMovie({ tmdb: { ...tmdb, providers: [{ type: 'rent', name: 'Apple TV', logoPath: null }] } })} />);
+    expect(screen.getByText('Só para alugar ou comprar')).toBeInTheDocument();
+    const { container } = renderWithProviders(<ProviderBadges movie={makeMovie({ tmdb: null })} />);
+    expect(container).toBeEmptyDOMElement();
+  });
+});
+
+describe('TrailerLink', () => {
+  it('abre o trailer no YouTube e some quando não há trailer', () => {
+    renderWithProviders(<TrailerLink movie={makeMovie({ tmdb: { ...tmdb, trailerKey: 'abc123XYZ_-' } })} />);
+    expect(screen.getByRole('link', { name: /Trailer/ })).toHaveAttribute('href', 'https://www.youtube.com/watch?v=abc123XYZ_-');
+    const { container } = renderWithProviders(<TrailerLink movie={makeMovie({ tmdb })} />);
+    expect(container).toBeEmptyDOMElement();
   });
 });

@@ -297,6 +297,20 @@ Status possíveis:
   - Ao carregar pôsteres, o navegador do usuário acessa `image.tmdb.org`: o TMDB recebe o IP do usuário (consta na política de privacidade).
   - Filme sem pôster mostra o card tipográfico (nunca imagem inventada).
 
+### DEC-042 — Pacote 1 de usabilidade, após a auditoria de uso (2026-10-15)
+- **Status:** Aprovado · **Data:** 2026-10-15
+- **Contexto:** Numa auditoria de ponta a ponta com uma conta nova, o app pareceu um formulário: o filme ficava abaixo
+  da dobra, não havia imagem nem onde assistir, a sinopse vinha em inglês e a busca falhava sem acento.
+- **Decisão:**
+  - O filme vem primeiro na Home; a explicação vira uma linha que se expande.
+  - Selos de onde assistir (assinatura ou grátis), sempre com o crédito "via JustWatch", e botão de trailer
+    com link para o YouTube. Não há player embutido: assim a CSP não muda e o YouTube não roda dentro do app.
+  - O TMDB passa a guardar também o título pt-BR (só quando é tradução de fato) e o trailer (`titlePt`, `trailerKey`).
+  - Sem imagem, o pôster some; a lista mantém o bloco tipográfico.
+  - A descrição curta do Wikidata em outro idioma deixa de aparecer.
+  - Busca sem acento e também pelo título pt-BR do TMDB (`search_normalize`).
+- **Próximo (pacote 2):** filtro "nos meus streamings", cadastro escolhendo pôsteres e similaridade com dados do TMDB.
+
 ## Pendências abertas
 
 | Item | Situação |
