@@ -1,5 +1,5 @@
 // Baixa o catálogo curado do Wikidata (CC0) e grava data/catalog.json.
-// Uso: npm run catalog:fetch [-- --min-sitelinks=7]
+// Uso: npm run catalog:fetch [-- --min-sitelinks=2]  (padrão 2: ~102 mil filmes, DEC-038)
 // Respeita o serviço público: consultas sequenciais, pausa entre lotes e retry com backoff.
 import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import { existsSync } from 'node:fs';
@@ -13,23 +13,45 @@ const PAUSE_MS = 400;
 const CACHE_DIR = 'data/wikidata-cache';
 const OUT = 'data/catalog.json';
 
-const minSitelinks = Number(process.argv.find((a) => a.startsWith('--min-sitelinks='))?.split('=')[1] ?? 7);
+const minSitelinks = Number(process.argv.find((a) => a.startsWith('--min-sitelinks='))?.split('=')[1] ?? 2);
 
 type Row = Record<string, { value: string } | undefined>;
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 const qid = (uri: string) => uri.slice(uri.lastIndexOf('/') + 1);
 
+async function retry(attempt: number, reason: string, query: string): Promise<Row[]> {
+  const wait = 2 ** attempt * 5;
+  console.warn(`  ${reason}, nova tentativa em ${wait}s`);
+  await sleep(wait * 1000);
+  return sparql(query, attempt + 1);
+}
+
 async function sparql(query: string, attempt = 1): Promise<Row[]> {
-  const res = await fetch(ENDPOINT, {
-    method: 'POST',
-    headers: {
-      'User-Agent': USER_AGENT,
-      Accept: 'application/sparql-results+json',
-      'Content-Type': 'application/x-www-form-urlencoded',
-    },
-    body: new URLSearchParams({ query }),
-  });
-  if (res.ok) return ((await res.json()) as { results: { bindings: Row[] } }).results.bindings;
+  let res: Response;
+  try {
+    res = await fetch(ENDPOINT, {
+      method: 'POST',
+      headers: {
+        'User-Agent': USER_AGENT,
+        Accept: 'application/sparql-results+json',
+        'Content-Type': 'application/x-www-form-urlencoded',
+      },
+      body: new URLSearchParams({ query }),
+    });
+  } catch (error) {
+    // Conexão derrubada pelo servidor (ECONNRESET, timeout): falha temporária.
+    if (attempt >= 5) throw error;
+    return retry(attempt, 'conexão interrompida', query);
+  }
+  if (res.ok) {
+    // O endpoint às vezes responde 200 com o corpo cortado (timeout no meio do envio): tratar como falha temporária.
+    try {
+      return ((await res.json()) as { results: { bindings: Row[] } }).results.bindings;
+    } catch (error) {
+      if (attempt >= 5) throw error;
+      return retry(attempt, 'resposta incompleta', query);
+    }
+  }
   if (attempt >= 5 || (res.status !== 429 && res.status < 500)) {
     throw new Error(`SPARQL ${res.status}: ${(await res.text()).slice(0, 300)}`);
   }
@@ -142,6 +164,18 @@ async function fetchBatch(ids: { id: string; sitelinks: number }[]): Promise<Mov
   return out;
 }
 
+// Lotes que estouram o tempo do endpoint mesmo com retry são divididos ao meio até um mínimo.
+async function fetchBatchSplitting(ids: { id: string; sitelinks: number }[]): Promise<Movie[]> {
+  try {
+    return await fetchBatch(ids);
+  } catch (error) {
+    if (ids.length <= 25) throw error;
+    const half = Math.ceil(ids.length / 2);
+    console.warn(`  lote de ${ids.length} falhou; dividindo em dois`);
+    return [...(await fetchBatchSplitting(ids.slice(0, half))), ...(await fetchBatchSplitting(ids.slice(half)))];
+  }
+}
+
 async function main() {
   await mkdir(CACHE_DIR, { recursive: true });
   console.log(`Buscando filmes com >= ${minSitelinks} sitelinks e duração...`);
@@ -156,7 +190,7 @@ async function main() {
     if (existsSync(file)) {
       movies = JSON.parse(await readFile(file, 'utf8'));
     } else {
-      movies = await fetchBatch(ids.slice(i * BATCH, (i + 1) * BATCH));
+      movies = await fetchBatchSplitting(ids.slice(i * BATCH, (i + 1) * BATCH));
       await writeFile(file, JSON.stringify(movies));
       await sleep(PAUSE_MS);
     }

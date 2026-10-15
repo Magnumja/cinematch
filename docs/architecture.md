@@ -62,7 +62,7 @@ Exclusão de conta: `delete_my_account()` apaga `auth.users`; todo o resto cai e
 
 | Item | Custo |
 |---|---|
-| Supabase (plano grátis: 500 MB; catálogo ocupa ~25 MB) | R$ 0 |
+| Supabase (plano grátis: 500 MB; catálogo ocupa ~71 MB) | R$ 0 |
 | Vercel Hobby (só não comercial, DEC-036) | R$ 0 |
 | GitHub Actions (CI + backup) | R$ 0 em repositório público; em privado, dentro da cota grátis (NÃO VERIFICADO) |
 | Wikidata | R$ 0 |

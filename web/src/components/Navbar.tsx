@@ -2,6 +2,7 @@
 import { useState } from 'react';
 import { NavLink } from 'react-router-dom';
 import { useI18n, type MessageKey } from '../lib/i18n.tsx';
+import logo from '../assets/cineou-logo.png';
 
 const LINKS: { to: string; key: MessageKey }[] = [
   { to: '/', key: 'nav.home' },
@@ -21,9 +22,8 @@ export function Navbar() {
   return (
     <header className="sticky top-0 z-30 border-b border-matte/60 bg-ink/70 backdrop-blur-md">
       <nav className="mx-auto flex h-16 max-w-6xl items-center justify-between gap-6 px-5 sm:px-8" aria-label="Principal">
-        {/* Marca provisória até a logo oficial chegar. */}
-        <NavLink to="/" className="font-display text-2xl font-extrabold tracking-tight text-paper uppercase" onClick={() => setOpen(false)}>
-          Cineou
+        <NavLink to="/" className="flex min-h-11 items-center rounded-lg" onClick={() => setOpen(false)}>
+          <img src={logo} alt="Cineou" width={296} height={80} className="h-7 w-auto" />
         </NavLink>
 
         <ul className="hidden items-center gap-1 rounded-full border border-matte bg-graphite/60 p-1 lg:flex">

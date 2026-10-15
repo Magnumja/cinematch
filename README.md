@@ -2,7 +2,7 @@
 
 Encontra o próximo filme certo para você: uma recomendação por vez, com o motivo explicado, respeitando seus limites e aprendendo com o seu feedback.
 
-- Catálogo: ~38 mil filmes do [Wikidata](https://www.wikidata.org) (CC0). Notas de Rotten Tomatoes e Metacritic via Wikidata.
+- Catálogo: ~102 mil filmes do [Wikidata](https://www.wikidata.org) (CC0). Notas de Rotten Tomatoes e Metacritic via Wikidata.
 - Motor de recomendação próprio, baseado em regras e explicável (`core/`).
 - Assistente com IA opcional (Claude Haiku 5.5) que só traduz o pedido em filtros.
 
@@ -16,7 +16,7 @@ Requisitos: Node 22+, Docker.
 npm install
 npx supabase start                                  # Postgres, Auth e Edge Functions locais
 cp .env.example .env                                # preencha com os valores de `npx supabase status`
-npm run catalog:fetch                               # baixa o catálogo do Wikidata (~15 min na primeira vez)
+npm run catalog:fetch -- --min-sitelinks=2          # baixa o catálogo do Wikidata (~50 min na primeira vez)
 SUPABASE_URL=... SUPABASE_SERVICE_ROLE_KEY=... npm run catalog:load
 echo "CRON_SECRET=local-dev-cron-secret" > supabase/functions/.env
 npx supabase functions serve --env-file supabase/functions/.env   # em outro terminal
@@ -33,6 +33,8 @@ node scripts/smoke-test.ts   # ponta a ponta contra o stack local (variáveis no
 ```
 
 ## Publicar para testes (Vercel + Supabase)
+
+Passo a passo completo, com onde vai cada chave e problemas comuns: [docs/deploy-supabase-vercel.md](docs/deploy-supabase-vercel.md).
 
 Nada abaixo foi executado. Plano grátis em ambos; o Vercel Hobby só pode ser usado enquanto não houver uso comercial (DEC-036).
 

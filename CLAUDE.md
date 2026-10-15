@@ -31,7 +31,7 @@ npm run build
 npx supabase start     # stack local (Docker)
 npx supabase test db   # pgTAP
 npx supabase functions serve --env-file supabase/functions/.env
-npm run catalog:fetch  # baixa ~38 mil filmes do Wikidata (~15 min, com cache por lote)
+npm run catalog:fetch -- --min-sitelinks=2  # baixa ~102 mil filmes do Wikidata (~50 min, com cache por lote)
 npm run catalog:load   # requer SUPABASE_URL e SUPABASE_SERVICE_ROLE_KEY
 node scripts/smoke-test.ts  # requer SUPABASE_URL, SUPABASE_ANON_KEY, SUPABASE_SERVICE_ROLE_KEY, CRON_SECRET
 ```

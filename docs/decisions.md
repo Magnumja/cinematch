@@ -166,6 +166,7 @@ Status possíveis:
 ### DEC-028 — Catálogo inicial
 - **Status:** Aprovado (delegado) · **Data:** 2026-10-14
 - **Decisão:** Filmes com ≥ 7 sitelinks e duração plausível (40–400 min): 38.302 filmes, 17.306 com nota, ~25 MB no banco.
+  (Ampliado para ≥ 2 sitelinks e 102.153 filmes na DEC-038.)
   Gêneros do Wikidata mapeados por palavras-chave para 19 gêneros canônicos (`scripts/wikidata/map.ts`).
   Média "x/10" do Rotten Tomatoes e "x/100" do Metacritic; "% de aprovação" do Rotten Tomatoes é ignorado (não é nota).
 
@@ -246,6 +247,21 @@ Status possíveis:
 - **Decisão:** Assistente ativo com Claude Haiku 5.5 (`claude-haiku-5-5`), usando a chave da API da Anthropic do responsável,
   configurada só como segredo das Edge Functions (`supabase secrets set`), nunca no repositório nem no frontend.
 - **Limites:** 10 pedidos por usuário/dia e teto global de US$ 2/mês (`AI_DAILY_LIMIT_PER_USER`, `AI_MONTHLY_BUDGET_USD`), dentro do teto de R$ 50 (DEC-003).
+
+### DEC-038 — Catálogo ampliado para ~100 mil filmes (2026-10-14)
+- **Status:** Aprovado pelo responsável
+- **Decisão:** Corte de sitelinks de 7 para 2 (`npm run catalog:fetch -- --min-sitelinks=2`): 102.153 filmes
+  (45.239 de 2000 a 2026; 21.615 com nota), ~71 MB na tabela `movies`. Substitui o número da DEC-028.
+- **Motivo:** O responsável pediu pelo menos 100 mil filmes; com corte 3 seriam ~85 mil. Cabe no plano grátis (500 MB).
+- **Consequências:** Mais filmes obscuros e recentes. O ranking não muda (popularidade continua em escala log
+  sobre o máximo do catálogo); `WELL_KNOWN_SITELINKS` fica em 39 como limiar absoluto, então "um dos mais conhecidos"
+  continua valendo só para filmes realmente conhecidos. O importador passou a repetir respostas cortadas e conexões
+  derrubadas pelo Wikidata e a dividir lotes que falham.
+
+### DEC-039 — Nome do produto: Cineou (2026-10-14)
+- **Status:** Aprovado pelo responsável
+- **Decisão:** O produto passa a se chamar Cineou (antes CineMatch AI). Repositório no GitHub, `project_id` do Supabase
+  local e migrations já aplicadas mantêm o nome antigo, porque são identificadores técnicos.
 
 ## Pendências abertas
 

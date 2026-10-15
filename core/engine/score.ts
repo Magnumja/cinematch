@@ -17,8 +17,9 @@ export const WEIGHTS_V1 = {
   explore: 0.25,
 } as const;
 
-// "Um dos mais conhecidos" só é dito para o topo real do catálogo: percentil 95 de sitelinks
-// do catálogo carregado em 2026-10-14 (p50 = 11, p95 = 39). Recalibrar ao recarregar o catálogo.
+// "Um dos mais conhecidos" só é dito para filmes realmente conhecidos: 39 sitelinks era o p95 do
+// catálogo de 38 mil (corte 7). Com o catálogo de 102 mil (corte 2, DEC-038) o p95 caiu para 27;
+// mantemos 39 como limiar absoluto para não chamar filmes medianos de "mais conhecidos".
 export const WELL_KNOWN_SITELINKS = 39;
 
 // Abaixo disso o histórico é ruído demais para virar preferência implícita.
