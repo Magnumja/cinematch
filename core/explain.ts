@@ -6,7 +6,7 @@ import type { Factor } from './schemas.ts';
 
 export type Locale = 'pt' | 'en';
 
-const SOURCE_LABELS = { rotten_tomatoes: 'Rotten Tomatoes', metacritic: 'Metacritic', tmdb: 'TMDB' } as const;
+const SOURCE_LABELS = { rotten_tomatoes: 'Rotten Tomatoes', metacritic: 'Metacritic' } as const;
 
 function list(items: string[], locale: Locale): string {
   if (items.length <= 1) return items.join('');

@@ -2,7 +2,7 @@
 -- Rodar com: npx supabase test db
 begin;
 create extension if not exists pgtap with schema extensions;
-select plan(51);
+select plan(53);
 
 -- Dados de teste (sintéticos).
 insert into auth.users (id, email) values
@@ -168,13 +168,13 @@ select ok((select rating_avg < 7.5 from public.movies where id = 'Q999999992'), 
 -- ---------------------------------------------------------------- TMDB (DEC-041)
 select is((select rating_avg from public.movies where id = 'Q999999992'), 7.449::numeric, 'média gerada pelo banco a partir de ratings');
 update public.movies set tmdb = '{"voteAverage": 9.0, "voteCount": 99}', tmdb_fetched_at = now() where id = 'Q999999992';
-select is((select rating_avg from public.movies where id = 'Q999999992'), 7.449::numeric, 'nota do TMDB com menos de 100 votos não entra');
+select is((select rating_avg from public.movies where id = 'Q999999992'), 7.449::numeric, 'nota do TMDB não entra na média (poucos votos)');
 update public.movies set tmdb = '{"voteAverage": 9.0, "voteCount": 5000}' where id = 'Q999999992';
-select is((select rating_avg from public.movies where id = 'Q999999992'), 7.966::numeric, 'nota do TMDB com amostra suficiente entra na média');
+select is((select rating_avg from public.movies where id = 'Q999999992'), 7.449::numeric, 'nota do TMDB não entra na média nem com muitos votos (DEC-043)');
 select throws_ok($$ update public.movies set rating_avg = 1 where id = 'Q999999992' $$, '428C9', null, 'rating_avg não pode ser escrita (coluna gerada)');
 update public.movies set tmdb_fetched_at = now() - interval '181 days' where id = 'Q999999992';
 select ok(public.purge_stale_tmdb() >= 1, 'purge apaga dados do TMDB com mais de 180 dias');
-select ok((select tmdb is null and rating_avg = 7.449 from public.movies where id = 'Q999999992'), 'após o purge, a média volta a ser só da crítica');
+select ok((select tmdb is null and rating_avg = 7.449 from public.movies where id = 'Q999999992'), 'após o purge, os dados do TMDB somem e a média da crítica fica igual');
 select ok(not has_function_privilege('authenticated', 'public.apply_tmdb(jsonb)', 'execute')
   and not has_function_privilege('authenticated', 'public.purge_stale_tmdb(interval)', 'execute'), 'cliente não escreve dados do TMDB');
 
@@ -254,6 +254,11 @@ select ok(
 set local role anon;
 select throws_ok($$ select public.export_my_data() $$, '42501', null, 'anônimo não exporta dados');
 reset role;
+
+-- Busca sem acento e pelo título pt-BR do TMDB
+select is(public.search_normalize('Amélie AÇÃO'), 'amelie acao', 'search_normalize tira acento e caixa');
+update public.movies set tmdb = coalesce(tmdb, '{}'::jsonb) || '{"titlePt": "Título Só No TMDB"}' where id = 'Q999999992';
+select ok((select search_text like '%titulo so no tmdb%' from public.movies where id = 'Q999999992'), 'busca inclui o título pt-BR do TMDB, sem acento');
 
 select * from finish();
 rollback;

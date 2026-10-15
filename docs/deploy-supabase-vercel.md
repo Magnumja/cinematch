@@ -23,7 +23,8 @@ Nunca coloque service_role, senha do banco ou `CRON_SECRET` na Vercel, no `.env`
 2. Preencha:
    - **Name:** `cineou`
    - **Database Password:** clique em *Generate a password* e **guarde essa senha** (num gerenciador de senhas). Ela será pedida no passo 2.2.
-   - **Region:** *South America (São Paulo)*, a mais perto dos usuários e da Vercel (`gru1`).
+   - **Region:** *South America (São Paulo)* é a mais perto dos usuários. O projeto atual está no Canadá (limite de 2 projetos
+     grátis); isso funciona bem, com uns 0,15 s a mais por requisição. Trocar de região exige criar outro projeto e refazer este guia.
    - **Plan:** Free.
 3. Clique em **Create new project** e espere uns 2 minutos até ficar verde.
 4. Anote o **Project ref**: é o código na URL do painel, `https://supabase.com/dashboard/project/<PROJECT_REF>`
@@ -47,11 +48,11 @@ npx supabase login
 npx supabase link --project-ref <PROJECT_REF>
 ```
 
-2.3. Suba as 4 migrations (tabelas, RLS, funções SQL, cron):
+2.3. Suba as migrations (tabelas, RLS, funções SQL, cron, remoção do assistente e colunas do TMDB):
 ```bash
 npx supabase db push
 ```
-Confirme com `Y`. Ao final, em *Table Editor* devem aparecer `movies`, `profiles`, `recommendations` e as demais tabelas.
+Confirme com `Y`. Em projeto que já existia, o `db push` aplica só as que faltam. Ao final, em *Table Editor* devem aparecer `movies`, `profiles`, `recommendations` e as demais tabelas.
 
 ## Parte 3: Edge Functions e segredos
 
@@ -151,3 +152,20 @@ O domínio de produção `cineou.vercel.app` em geral já é público; a proteç
 - Mudou função: `npx supabase functions deploy <nome>`.
 - Mudou o frontend: merge na `main`; a Vercel publica sozinha.
 - Atualizar catálogo: `npm run catalog:fetch` e depois o comando da Parte 4.
+
+## Atualização de 2026-10-15: assistente removido e TMDB (DEC-040, DEC-041)
+
+Para quem publicou antes desta data:
+```bash
+npx supabase db push                                   # aplica remove_assistant e tmdb
+npx supabase functions deploy recommend scheduled-run
+npx supabase functions delete assistant                # se ela tinha sido publicada
+npx supabase secrets unset ANTHROPIC_API_KEY           # se existia
+```
+
+Pôsteres, sinopses e onde assistir (só no seu terminal, nunca na Vercel):
+```bash
+SUPABASE_URL=https://<PROJECT_REF>.supabase.co SUPABASE_SERVICE_ROLE_KEY=<service role> \
+TMDB_READ_TOKEN=<API Read Access Token> npm run tmdb:enrich
+```
+Sem esse passo o site funciona, mas sem pôsteres. Rode de novo a cada ~5 meses: os dados do TMDB são apagados após 180 dias.

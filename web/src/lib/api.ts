@@ -174,7 +174,8 @@ export async function moviesByIds(ids: string[]): Promise<Movie[]> {
 }
 
 export async function searchMovies(query: string, limit = 20): Promise<Movie[]> {
-  const q = query.trim().toLowerCase().replace(/[%_]/g, '');
+  // Mesma normalização de public.search_normalize: minúsculas e sem acento.
+  const q = query.trim().toLowerCase().normalize('NFD').replace(/\p{Diacritic}/gu, '').replace(/[%_]/g, '');
   if (q.length < 2) return [];
   const { data, error } = await supabase
     .from('movies')

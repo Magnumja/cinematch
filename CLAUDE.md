@@ -11,7 +11,7 @@ Decisões e motivos: `docs/decisions.md` (fonte da verdade). Arquitetura: `docs/
 ## Stack aprovada
 - TypeScript de ponta a ponta. React 19 + Vite + Tailwind v4 (`web/`). CSS para transições simples; Motion para componentes Unlumen UI (integração solicitada pelo responsável; ver `docs/ui-component-sources.md`).
 - Supabase: Postgres + Auth + RLS + Edge Functions (Deno) + pg_cron. Frontend estático no Vercel Hobby (`vercel.json`) na fase de testes — só uso não comercial (DEC-036).
-- Catálogo: base no Wikidata (CC0). O TMDB complementa com pôster, sinopse, nota (≥100 votos) e onde assistir (DEC-041). O uso tem que ser não comercial, com o logo e o aviso do TMDB, o crédito "JustWatch" nos provedores e cache de no máximo 180 dias (`purge_stale_tmdb`). IMDb datasets e OMDb são proibidos.
+- Catálogo: base no Wikidata (CC0). O TMDB complementa com pôster, sinopse, título pt-BR, trailer, nota dos usuários (só exibida, nunca misturada à crítica nem usada em filtro/ranking — DEC-043) e onde assistir (DEC-041). O uso tem que ser não comercial, com o logo e o aviso do TMDB, o crédito "JustWatch" nos provedores e cache de no máximo 180 dias (`purge_stale_tmdb`). IMDb datasets e OMDb são proibidos.
 - Sem IA/LLM no produto (DEC-040): o assistente foi removido para permitir o uso da API do TMDB (termos §1.C).
 
 ## Estrutura

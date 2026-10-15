@@ -31,6 +31,7 @@ Operadores que processam dados em nosso nome:
 - **Supabase** — banco de dados, autenticação e execução do backend. [Confirmar região do projeto e cláusulas de transferência internacional.]
 - **Vercel** — hospedagem do site.
 - **TMDB (The Movie Database)** — os pôsteres e imagens são carregados direto dos servidores do TMDB; ao exibi-los, seu navegador envia ao TMDB o endereço IP e dados técnicos da requisição. Nenhum dado da sua conta é enviado ao TMDB.
+- **YouTube (Google)** — só quando você clica em "Trailer": o player é carregado de `youtube-nocookie.com` e o YouTube recebe seu IP e dados técnicos da reprodução. Nada é carregado antes do clique.
 - **GitHub** — cópia de segurança semanal, criptografada.
 
 Não vendemos dados e não compartilhamos para publicidade.

@@ -4,13 +4,11 @@ import {
   ConstraintsSchema,
   MovieSchema,
   PreferencesSchema,
-  RatingSchema,
   TmdbInfoSchema,
   UserMovieSchema,
   type Constraints,
   type Movie,
   type Preferences,
-  type Rating,
   type TmdbInfo,
   type UserMovie,
 } from './schemas.ts';
@@ -18,17 +16,14 @@ import {
 export const MOVIE_COLUMNS =
   'id,title_pt,title_en,year,runtime_min,genres,languages,directors,ratings,popularity,description_pt,description_en,tmdb';
 
-// Mesma regra da função SQL movie_rating_avg (migration 20261015000100_tmdb.sql): a nota do TMDB só conta
-// com amostra mínima de votos, para um filme com 3 votos não passar num filtro de "nota mínima".
+// Nota dos usuários do TMDB: exibida à parte, como veio, e só com amostra mínima de votos. Não entra na média
+// da crítica nem em filtros/ranking (DEC-043): misturá-la seria criar uma nota derivada do conteúdo do TMDB
+// (termos §1.C) e chamar usuários de "crítica".
 export const MIN_TMDB_VOTES = 100;
 
-export function tmdbRating(tmdb: TmdbInfo | null): Rating | null {
+export function tmdbUserScore(tmdb: TmdbInfo | null | undefined): { value: number; votes: number } | null {
   if (!tmdb || tmdb.voteAverage === null || tmdb.voteCount < MIN_TMDB_VOTES) return null;
-  return {
-    source: 'tmdb',
-    value: tmdb.voteAverage,
-    raw: `${tmdb.voteAverage.toFixed(1)}/10 (${tmdb.voteCount} votos)`,
-  };
+  return { value: tmdb.voteAverage, votes: tmdb.voteCount };
 }
 
 export interface MovieRow {
@@ -49,9 +44,6 @@ export interface MovieRow {
 
 export function rowToMovie(row: MovieRow): Movie {
   const tmdb = row.tmdb ? TmdbInfoSchema.parse(row.tmdb) : null;
-  // ratings no banco guarda só a crítica (Wikidata); a nota do TMDB entra aqui, igual à média do banco.
-  const critics = RatingSchema.array().parse(row.ratings ?? []).filter((r) => r.source !== 'tmdb');
-  const fromTmdb = tmdbRating(tmdb);
   return MovieSchema.parse({
     id: row.id,
     titlePt: row.title_pt,
@@ -61,7 +53,7 @@ export function rowToMovie(row: MovieRow): Movie {
     genres: row.genres,
     languages: row.languages,
     directors: row.directors,
-    ratings: fromTmdb ? [...critics, fromTmdb] : critics,
+    ratings: row.ratings ?? [],
     popularity: row.popularity,
     descriptionPt: row.description_pt,
     descriptionEn: row.description_en,
@@ -70,7 +62,7 @@ export function rowToMovie(row: MovieRow): Movie {
 }
 
 // Linha para o upsert do catálogo do Wikidata. Não inclui tmdb (escrito só por scripts/tmdb) nem rating_avg
-// (coluna gerada pelo banco a partir de ratings + tmdb).
+// (coluna gerada pelo banco a partir de ratings).
 export function movieToRow(m: Movie): MovieRow {
   return {
     id: m.id,
@@ -81,7 +73,7 @@ export function movieToRow(m: Movie): MovieRow {
     genres: m.genres,
     languages: m.languages,
     directors: m.directors,
-    ratings: m.ratings.filter((r) => r.source !== 'tmdb'),
+    ratings: m.ratings,
     popularity: m.popularity,
     description_pt: m.descriptionPt,
     description_en: m.descriptionEn,
@@ -122,8 +114,10 @@ export function rowToUserMovie(row: UserMovieRow): UserMovie {
   });
 }
 
-export function displayTitle(m: Pick<Movie, 'titlePt' | 'titleEn'>, locale: 'pt' | 'en'): string {
-  return (locale === 'pt' ? (m.titlePt ?? m.titleEn) : (m.titleEn ?? m.titlePt)) ?? '';
+// Em PT, o título de lançamento no Brasil (tradução pt-BR do TMDB) vem antes do rótulo pt do Wikidata, que às vezes
+// é o título original ("The Godfather") ou o de Portugal.
+export function displayTitle(m: Pick<Movie, 'titlePt' | 'titleEn'> & { tmdb?: Movie['tmdb'] }, locale: 'pt' | 'en'): string {
+  return (locale === 'pt' ? (m.tmdb?.titlePt ?? m.titlePt ?? m.titleEn) : (m.titleEn ?? m.titlePt)) ?? '';
 }
 
 // Chave de período no fuso do usuário: impede duas recomendações agendadas no mesmo dia/semana/mês.

@@ -143,9 +143,9 @@ describe('HeroCard', () => {
     expect(screen.getByRole('link', { name: 'Ver detalhes' })).toHaveAttribute('href', '/movie/Q1001');
   });
 
-  it('usa a descrição em português e cai para a inglesa quando não houver', () => {
+  it('em português não mostra a descrição curta do Wikidata em inglês', () => {
     renderHero({ movie: makeMovie({ descriptionPt: null, descriptionEn: 'english only' }) });
-    expect(screen.getByText('english only')).toBeInTheDocument();
+    expect(screen.queryByText('english only')).not.toBeInTheDocument();
   });
 });
 

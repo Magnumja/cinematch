@@ -1,6 +1,6 @@
 import { AnimatedInput } from './components/AnimatedInput.tsx';
 // Rotas e guarda de acesso: sem sessão → login; sem onboarding → onboarding; senão o app.
-import { BrowserRouter, Navigate, Outlet, Route, Routes } from 'react-router-dom';
+import { BrowserRouter, Link, Navigate, Outlet, Route, Routes } from 'react-router-dom';
 import { Navbar } from './components/Navbar.tsx';
 import { TmdbAttribution } from './components/Poster.tsx';
 import { lazy, Suspense, useEffect, useState, type FormEvent } from 'react';
@@ -20,6 +20,7 @@ const pages = {
   Onboarding: () => import('./pages/Onboarding.tsx'),
   Profile: () => import('./pages/Profile.tsx'),
   Search: () => import('./pages/Search.tsx'),
+  About: () => import('./pages/About.tsx'),
 };
 const Discover = lazy(pages.Discover);
 const MovieDetail = lazy(pages.MovieDetail);
@@ -27,6 +28,7 @@ const MyList = lazy(pages.MyList);
 const Onboarding = lazy(pages.Onboarding);
 const Profile = lazy(pages.Profile);
 const Search = lazy(pages.Search);
+const About = lazy(pages.About);
 
 function usePrefetchPages() {
   useEffect(() => {
@@ -61,6 +63,7 @@ function Layout() {
       <footer className="mx-auto max-w-6xl space-y-3 px-5 pb-10 text-xs text-fog sm:px-8">
         <p>{t('movie.source')}</p>
         <TmdbAttribution />
+        <Link to="/about" className="block underline underline-offset-4 hover:text-paper">{t('nav.about')}</Link>
         <span className="mt-3 block">UI: <a href="https://ui.unlumen.com" className="underline underline-offset-4 hover:text-paper">Unlumen UI</a> · <a href="https://skiper-ui.com" className="underline underline-offset-4 hover:text-paper">Skiper UI</a></span></footer>
     </>
   );
@@ -123,6 +126,7 @@ function Gate() {
   } else if (!session) {
     content = (
       <Routes>
+        <Route path="about" element={<Suspense fallback={<PageFallback />}><About /></Suspense>} />
         <Route path="*" element={<Auth />} />
       </Routes>
     );
@@ -152,6 +156,7 @@ function Gate() {
           <Route path="search" element={<Search />} />
           <Route path="profile" element={<Profile />} />
           <Route path="movie/:id" element={<MovieDetail />} />
+          <Route path="about" element={<About />} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Route>
       </Routes>

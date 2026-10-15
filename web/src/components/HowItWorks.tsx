@@ -1,27 +1,6 @@
-// Explicação curta de como o app decide. Aparece aberta até a pessoa dispensar; depois vira um link discreto.
-// O "dispensado" fica só neste navegador (conveniência local, não é dado do perfil).
+// Explicação de como o app decide: uma linha fechada por padrão (o filme vem primeiro); abre os detalhes ao clicar.
 import { useState } from 'react';
 import { useI18n } from '../lib/i18n.tsx';
-import { Button } from './ui.tsx';
-
-const KEY = 'cineou.how.dismissed';
-
-function readDismissed(): boolean {
-  try {
-    return localStorage.getItem(KEY) === '1';
-  } catch {
-    return false;
-  }
-}
-
-function writeDismissed(value: boolean) {
-  try {
-    if (value) localStorage.setItem(KEY, '1');
-    else localStorage.removeItem(KEY);
-  } catch {
-    // Sem armazenamento (aba anônima, bloqueio): o painel só volta a aparecer na próxima visita.
-  }
-}
 
 const STEPS = [1, 2, 3] as const;
 const TIERS = [
@@ -32,13 +11,16 @@ const TIERS = [
 
 export function HowItWorks() {
   const { t } = useI18n();
-  const [open, setOpen] = useState(() => !readDismissed());
+  const [open, setOpen] = useState(false);
 
   if (!open) {
     return (
-      <button type="button" onClick={() => { writeDismissed(false); setOpen(true); }} className="text-sm text-fog underline underline-offset-4 hover:text-paper">
-        {t('how.show')}
-      </button>
+      <p className="flex flex-wrap items-baseline gap-x-3 gap-y-1 text-sm text-fog">
+        <span>{t('how.short')}</span>
+        <button type="button" aria-expanded={false} onClick={() => setOpen(true)} className="text-paper underline underline-offset-4 hover:text-ember">
+          {t('how.more')}
+        </button>
+      </p>
     );
   }
 
@@ -46,9 +28,9 @@ export function HowItWorks() {
     <section aria-labelledby="how-title" className="reveal rounded-2xl border border-matte bg-graphite/40 p-6 sm:p-8">
       <div className="flex flex-wrap items-start justify-between gap-4">
         <h2 id="how-title" className="font-display text-3xl font-bold text-paper uppercase">{t('how.title')}</h2>
-        <Button onClick={() => { writeDismissed(true); setOpen(false); }} className="px-3 py-1.5">
+        <button type="button" aria-expanded={true} onClick={() => setOpen(false)} className="min-h-11 rounded-full px-3 py-1.5 text-sm text-fog ring-1 ring-matte hover:text-paper">
           {t('how.dismiss')}
-        </Button>
+        </button>
       </div>
       <ol className="mt-6 grid gap-6 md:grid-cols-3">
         {STEPS.map((n) => (

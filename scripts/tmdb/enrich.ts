@@ -1,4 +1,4 @@
-// Enriquece o catálogo com dados do TMDB (DEC-041): pôster, fundo, sinopse PT/EN, nota e onde assistir (BR).
+// Enriquece o catálogo com dados do TMDB (DEC-041): pôster, fundo, título e sinopse PT/EN, nota, trailer e onde assistir (BR).
 // Uso: TMDB_READ_TOKEN=... SUPABASE_URL=... SUPABASE_SERVICE_ROLE_KEY=... npm run tmdb:enrich [-- --limit=200] [-- --skip-ids]
 //      --ids-only: só mapeia os ids pelo Wikidata (não precisa do token do TMDB).
 // Retomável: só busca filmes sem dados ou com dados de mais de 150 dias (o banco apaga após 180 — termos do TMDB).
@@ -87,7 +87,7 @@ async function throttle() {
 
 async function fetchMovie(tmdbId: number, attempt = 1): Promise<TmdbMovieResponse | 'not_found'> {
   await throttle();
-  const url = `https://api.themoviedb.org/3/movie/${tmdbId}?language=pt-BR&append_to_response=${encodeURIComponent('watch/providers,translations')}`;
+  const url = `https://api.themoviedb.org/3/movie/${tmdbId}?language=pt-BR&append_to_response=${encodeURIComponent('watch/providers,translations,videos')}&include_video_language=pt,en`;
   const res = await fetch(url, { headers: { Authorization: `Bearer ${TOKEN}`, Accept: 'application/json' } }).catch(() => null);
   if (res?.ok) return (await res.json()) as TmdbMovieResponse;
   if (res?.status === 404) return 'not_found';

@@ -4,8 +4,9 @@ import type { Genre } from '../domain/genres.ts';
 import type { AffinityTier, Context, Factor, Movie, Preferences, UserMovie } from '../schemas.ts';
 import { averageRating } from './filters.ts';
 
-// v2 (2026-10-15): nota do TMDB entra na média das notas (DEC-041).
-export const ALGORITHM_VERSION = 'rules-v2';
+// v2 (2026-10-15): nota do TMDB entrava na média das notas (DEC-041).
+// v3 (2026-10-15): volta a ser só a crítica; a nota do TMDB é só exibida (DEC-043).
+export const ALGORITHM_VERSION = 'rules-v3';
 
 export const WEIGHTS_V1 = {
   liked: 0.3,

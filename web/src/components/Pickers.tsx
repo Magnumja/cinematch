@@ -68,6 +68,11 @@ export function FavoritesPicker({ value, onChange, max }: { value: string[]; onC
     const next = has ? selected.filter((x) => x.id !== m.id) : [...selected, m];
     setSelected(next);
     onChange(next.map((x) => x.id));
+    // Escolheu da lista: limpa a busca para o próximo título não colar no anterior.
+    if (!has) {
+      setQuery('');
+      setResults([]);
+    }
   }
 
   return (

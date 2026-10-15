@@ -26,7 +26,7 @@ Ele não é um serviço de streaming: não exibe, vende nem aluga filmes, e não
 ## 5. Dados do catálogo
 - Informações dos filmes: Wikidata, disponíveis sob licença CC0. Podem conter erros ou estar incompletas, por exemplo gêneros e durações.
 - Notas da crítica: Rotten Tomatoes e Metacritic, obtidas via Wikidata e sempre exibidas com a fonte. [Pendente de validação jurídica — DEC-010.]
-- Pôsteres, sinopses e nota dos usuários: TMDB. Este produto usa a API do TMDB, mas não é endossado nem certificado pelo TMDB.
+- Pôsteres, sinopses, trailers e nota dos usuários: TMDB. Este produto usa o TMDB e as APIs do TMDB, mas não é endossado, certificado nem aprovado de outra forma pelo TMDB.
 - Onde assistir: dados do JustWatch, via TMDB. Podem estar desatualizados; confirme no serviço antes de assinar ou alugar.
 - O Cineou não é afiliado a nenhum estúdio, serviço de streaming ou site de críticas.
 
