@@ -4,7 +4,8 @@ import type { Genre } from '../../../core/domain/genres.ts';
 import { ConstraintsSchema, type Constraints, type Relaxable } from '../../../core/schemas.ts';
 import { CompactCard } from '../components/MovieCard.tsx';
 import { GenreSet, LimitsFields } from '../components/Pickers.tsx';
-import { Button, ErrorState, NoMatch, PageHeader, SectionTitle, Skeleton } from '../components/ui.tsx';
+import { Button, ErrorState, NoMatch, PageHeader, SectionTitle } from '../components/ui.tsx';
+import { CardGridSkeleton } from '../components/Skeletons.tsx';
 import { ApiError, relaxToContext, requestRecommendation, type RecView } from '../lib/api.ts';
 import { useI18n } from '../lib/i18n.tsx';
 import { useUser } from '../lib/session.tsx';
@@ -69,11 +70,7 @@ export default function Discover() {
 
       <section className="mt-14" aria-live="polite">
         {loading ? (
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-            {Array.from({ length: 4 }, (_, i) => (
-              <Skeleton key={i} className="h-56" />
-            ))}
-          </div>
+          <CardGridSkeleton />
         ) : error ? (
           <ErrorState message={error} onRetry={() => void run()} />
         ) : view && view.items.length === 0 ? (

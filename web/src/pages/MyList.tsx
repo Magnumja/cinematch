@@ -1,4 +1,5 @@
 // Minha lista: salvos, assistidos (com avaliação editável) e filmes marcados como sem interesse.
+import { RowListSkeleton } from '../components/Skeletons.tsx';
 import { useState } from 'react';
 import { MovieRowItem } from '../components/MovieCard.tsx';
 import { Button, PageHeader } from '../components/ui.tsx';
@@ -17,7 +18,7 @@ const TABS: { id: Tab; label: MessageKey; filter: (e: UserMovieEntry) => boolean
 export default function MyList() {
   const { t } = useI18n();
   const { userId } = useUser();
-  const { entries, refresh } = useMovieActions();
+  const { entries, loaded, refresh } = useMovieActions();
   const [tab, setTab] = useState<Tab>('watchlist');
   const current = TABS.find((x) => x.id === tab)!;
   const items = entries.filter(current.filter);
@@ -44,7 +45,9 @@ export default function MyList() {
         ))}
       </div>
 
-      {items.length === 0 ? (
+      {!loaded ? (
+        <RowListSkeleton count={4} />
+      ) : items.length === 0 ? (
         <p className="text-fog">{t('list.empty')}</p>
       ) : (
         <ul role="tabpanel">

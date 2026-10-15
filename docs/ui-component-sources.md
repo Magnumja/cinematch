@@ -9,6 +9,7 @@ Permite uso e adaptação em aplicações, inclusive comerciais. Proíbe redistr
 
 - `web/src/components/unlumen-ui/Tilt.tsx`: fonte https://ui.unlumen.com/r/tilt.json, primitiva usada pelo [Tilt Card](https://ui.unlumen.com/components/tilt-card). Mantém Motion values, springs e transformação 3D. Adaptações: rotação menor, medição em wrapper estável, limites normalizados, exclusão de toque, reset no foco e cancelamento, suporte a movimento reduzido.
 - `web/src/components/unlumen-ui/GlowButton.tsx`: fonte https://unlumen-ui-docs.vercel.app/docs/ui/buttons/glow. Adaptação simplificada do modo static: gradiente na paleta local, brilho só em hover/foco, sem loop contínuo; mantém um botão HTML sem wrapper de layout. O original credita Magic UI como inspiração.
+- `web/src/components/unlumen-ui/ShimmerSkeleton.tsx`: fonte https://ui.unlumen.com/r/shimmer-skeleton.json. Mantém a API (`rounded`, `animate`) e a faixa de luz em `translateX`. Adaptações: sem `cn`, cores da paleta local, keyframes `unlumen-shimmer` em `styles.css` (sem `<style>` inline), peças `aria-hidden` (o contêiner de cada layout em `Skeletons.tsx` é que tem `role="status"`), sem animação com movimento reduzido.
 
 ## Skiper UI — @gurvinder-singh02
 

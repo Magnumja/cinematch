@@ -7,8 +7,13 @@ import { useUser } from './session.tsx';
 export function useMovieActions() {
   const { userId } = useUser();
   const [entries, setEntries] = useState<UserMovieEntry[]>([]);
+  // Distingue "ainda carregando" de "lista vazia" (sem isso, Minha lista piscava "nada aqui" ao abrir).
+  const [loaded, setLoaded] = useState(false);
 
-  const refresh = useCallback(async () => setEntries(await listUserMovies(userId)), [userId]);
+  const refresh = useCallback(async () => {
+    setEntries(await listUserMovies(userId));
+    setLoaded(true);
+  }, [userId]);
   useEffect(() => {
     void refresh();
   }, [refresh]);
@@ -43,5 +48,5 @@ export function useMovieActions() {
     [userId, refresh],
   );
 
-  return { entries, saved, toggleSave, saveFromRec, feedback, refresh };
+  return { entries, loaded, saved, toggleSave, saveFromRec, feedback, refresh };
 }

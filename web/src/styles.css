@@ -76,16 +76,18 @@ body {
   }
 }
 
-.skeleton {
-  background: linear-gradient(90deg, var(--color-graphite), var(--color-matte), var(--color-graphite));
-  background-size: 200% 100%;
-  animation: shimmer 1.4s linear infinite;
-  border-radius: 6px;
+/* ShimmerSkeleton (Unlumen UI): faixa de luz atravessando a peça. */
+.unlumen-shimmer {
+  background: linear-gradient(90deg, transparent 0%, color-mix(in srgb, var(--color-paper) 7%, transparent) 50%, transparent 100%);
+  animation: unlumen-shimmer 1.6s ease-in-out infinite;
 }
-@keyframes shimmer {
+@keyframes unlumen-shimmer {
   to {
-    background-position: -200% 0;
+    transform: translateX(200%);
   }
+}
+@media (prefers-reduced-motion: reduce) {
+  .unlumen-shimmer { animation: none; }
 }
 
 @media (prefers-reduced-motion: reduce) {

@@ -1,3 +1,4 @@
+import { RowListSkeleton } from '../components/Skeletons.tsx';
 import { AnimatedInput } from '../components/AnimatedInput.tsx';
 // Busca por título no catálogo (Wikidata). Sem LLM.
 import { useEffect, useState } from 'react';
@@ -13,17 +14,21 @@ export default function Search() {
   const { saved, toggleSave } = useMovieActions();
   const [query, setQuery] = useState('');
   const [results, setResults] = useState<Movie[] | null>(null);
+  const [searching, setSearching] = useState(false);
 
   useEffect(() => {
     if (query.trim().length < 2) {
       setResults(null);
+      setSearching(false);
       return;
     }
     let cancelled = false;
+    setSearching(true);
     const handle = setTimeout(() => {
       searchMovies(query, 30)
         .then((r) => !cancelled && setResults(r))
-        .catch(() => !cancelled && setResults([]));
+        .catch(() => !cancelled && setResults([]))
+        .finally(() => !cancelled && setSearching(false));
     }, 250);
     return () => {
       cancelled = true;
@@ -44,7 +49,9 @@ export default function Search() {
         className="w-full rounded-full bg-graphite px-5 py-4 text-lg text-paper ring-1 ring-matte placeholder:text-fog/70 focus:ring-fog/50 focus:outline-none"
       />
       <div className="mt-8" aria-live="polite">
-        {results === null ? (
+        {searching && (results === null || results.length === 0) ? (
+          <RowListSkeleton />
+        ) : results === null ? (
           <p className="text-fog">{t('search.hint')}</p>
         ) : results.length === 0 ? (
           <p className="text-fog">{t('search.noResults')}</p>

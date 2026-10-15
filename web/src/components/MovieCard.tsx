@@ -176,6 +176,7 @@ export function HeroCard({ item, movie, movies, saved, onSave, onFeedback, onAno
   });
   const description = synopsis(movie, locale);
   const title = displayTitle(movie, locale);
+  const hasPoster = Boolean(movie.tmdb?.posterPath);
 
   return (
     <article
@@ -187,26 +188,30 @@ export function HeroCard({ item, movie, movies, saved, onSave, onFeedback, onAno
     >
       <Backdrop movie={movie} />
       <div aria-hidden="true" className="absolute inset-y-0 left-0 w-1.5" style={{ background: `hsl(${hueOf(movie)} 55% 50% / 0.8)` }} />
-      <div className={`relative grid gap-10 p-7 sm:p-10 lg:gap-12 lg:p-14 ${movie.tmdb?.posterPath ? 'lg:grid-cols-[auto_1.4fr_1fr]' : 'lg:grid-cols-[1.4fr_1fr]'}`}>
-        <Poster movie={movie} hue={hueOf(movie)} size="w500" className="w-36 shadow-[0_20px_50px_#0008] sm:w-44 lg:w-56 lg:self-start" />
-        <div className="min-w-0">
-          <div className="flex flex-wrap items-center gap-x-5 gap-y-2">
-            <p className="rounded-full border border-ember/30 bg-ink/40 px-3 py-1.5 text-xs font-medium uppercase tracking-wider text-ember">{label}</p>
+      {/* Celular: pôster pequeno ao lado do título (filme, nota e onde assistir na primeira tela); o resto embaixo.
+          Desktop: pôster | conteúdo | motivos. Sem pôster, o cabeçalho ocupa a largura toda. */}
+      <div className={`relative grid gap-x-5 gap-y-6 p-5 sm:gap-x-8 sm:p-10 lg:gap-x-12 lg:gap-y-6 lg:p-14 ${hasPoster ? 'grid-cols-[6.5rem_minmax(0,1fr)] sm:grid-cols-[10rem_minmax(0,1fr)] lg:grid-cols-[14rem_minmax(0,1.4fr)_minmax(0,1fr)]' : 'grid-cols-1 lg:grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)]'}`}>
+        <Poster movie={movie} hue={hueOf(movie)} size="w500" className="col-start-1 row-start-1 w-full self-start shadow-[0_20px_50px_#0008] lg:row-span-2" />
+        <div className={`min-w-0 row-start-1 self-center lg:self-start ${hasPoster ? 'col-start-2' : 'col-start-1'}`}>
+          <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
+            <p className="rounded-full border border-ember/30 bg-ink/40 px-2.5 py-1 text-[0.7rem] font-medium uppercase tracking-wider text-ember sm:px-3 sm:py-1.5 sm:text-xs">{label}</p>
             <TierLabel tier={item.tier} />
           </div>
           <h2
             id="hero-title"
-            className="mt-5 font-display text-[clamp(3rem,7vw,6.25rem)] leading-[0.94] font-extrabold tracking-[-0.01em] text-balance text-paper uppercase"
+            className={`mt-3 font-display leading-[0.94] font-extrabold tracking-[-0.01em] text-balance text-paper uppercase sm:mt-5 ${hasPoster ? 'text-[clamp(1.85rem,6.5vw,6.25rem)]' : 'text-[clamp(2.5rem,8vw,6.25rem)]'}`}
           >
             {title}
           </h2>
-          <div className="mt-6">
+          <div className="mt-3 sm:mt-6">
             <MovieMeta movie={movie} size="md" />
           </div>
-          <ProviderBadges movie={movie} className="mt-4" />
-          {movie.tmdb?.taglinePt && locale === 'pt' && <p className="mt-5 text-paper/90 italic">{movie.tmdb.taglinePt}</p>}
-          {description && <p className="mt-3 line-clamp-4 max-w-[60ch] text-fog first-letter:uppercase">{description}</p>}
-          <div className="mt-6 flex flex-wrap items-center gap-4">
+        </div>
+        <div className={`min-w-0 ${hasPoster ? 'col-span-2 lg:col-span-1 lg:col-start-2 lg:row-start-2' : 'lg:row-start-2'}`}>
+          <ProviderBadges movie={movie} />
+          {movie.tmdb?.taglinePt && locale === 'pt' && <p className="mt-4 text-paper/90 italic">{movie.tmdb.taglinePt}</p>}
+          {description && <p className="mt-3 line-clamp-3 max-w-[60ch] text-fog first-letter:uppercase sm:line-clamp-4">{description}</p>}
+          <div className="mt-5 flex flex-wrap items-center gap-4">
             <TrailerButton movie={movie} />
             <AnimatedLink to={`/movie/${movie.id}`} className="text-sm text-fog hover:text-paper">
               {t('movie.details')}
@@ -214,12 +219,12 @@ export function HeroCard({ item, movie, movies, saved, onSave, onFeedback, onAno
           </div>
         </div>
 
-        <div className="hero-reasons flex flex-col justify-between gap-8 rounded-2xl border border-paper/10 bg-ink/35 p-5 sm:p-6">
+        <div className={`hero-reasons flex flex-col justify-between gap-6 rounded-2xl border border-paper/10 bg-ink/35 p-4 sm:gap-8 sm:p-6 ${hasPoster ? 'col-span-2 lg:col-span-1 lg:col-start-3 lg:row-span-2 lg:row-start-1' : 'lg:col-start-2 lg:row-span-2 lg:row-start-1'}`}>
           <div>
             <h3 className="text-sm text-fog">{t('movie.why')}</h3>
             <ul className="mt-3 space-y-3">
               {reasons.map((r) => (
-                <li key={r} className="text-lg leading-snug text-paper">
+                <li key={r} className="text-base leading-snug text-paper sm:text-lg">
                   {r}
                 </li>
               ))}
@@ -254,15 +259,15 @@ export function CompactCard({ item, movie, movies, saved, onSave, entranceDelay 
       onMouseEnter={() => setAmbient(movie)}
       onFocus={() => setAmbient(movie)}
       style={{ '--film-hue': hueOf(movie) } as CSSProperties}
-      className="movie-card group relative flex h-full flex-col justify-between gap-5 overflow-hidden rounded-2xl p-5 ring-1 ring-matte hover:ring-fog/30 focus-within:ring-fog/40 motion-safe:hover:shadow-[0_12px_30px_#0004]"
+      className="movie-card group relative flex h-full flex-col justify-between gap-4 overflow-hidden rounded-2xl p-4 ring-1 sm:gap-5 sm:p-5 ring-matte hover:ring-fog/30 focus-within:ring-fog/40 motion-safe:hover:shadow-[0_12px_30px_#0004]"
     >
       <div aria-hidden="true" className="absolute inset-x-0 top-0 h-0.5" style={{ background: `hsl(${hueOf(movie)} 55% 50% / 0.7)` }} />
       <div className="min-w-0">
         <div className="flex items-start justify-between gap-3">
           <TierLabel tier={item.tier} />
-          <Poster movie={movie} hue={hueOf(movie)} size="w185" className="w-20" />
+          <Poster movie={movie} hue={hueOf(movie)} size="w185" className="w-16 sm:w-20" />
         </div>
-        <h3 className="mt-4 min-h-20 font-display text-4xl leading-[0.95] font-bold text-balance text-paper uppercase">
+        <h3 className="mt-3 font-display text-[1.65rem] leading-[0.95] font-bold text-balance text-paper uppercase sm:mt-4 sm:min-h-20 sm:text-4xl">
           <Link to={`/movie/${movie.id}`} className="after:absolute after:inset-0 focus-visible:outline-none">
             {displayTitle(movie, locale)}
           </Link>
