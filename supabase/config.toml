@@ -417,9 +417,6 @@ enabled = true
 [functions.recommend]
 import_map = "./functions/deno.json"
 
-[functions.assistant]
-import_map = "./functions/deno.json"
-
 # Autenticada pelo CRON_SECRET (pg_cron), não por JWT de usuário.
 [functions.scheduled-run]
 verify_jwt = false

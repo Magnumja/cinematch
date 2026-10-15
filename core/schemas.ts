@@ -4,7 +4,8 @@ import { GENRES } from './domain/genres.ts';
 
 export const GenreSchema = z.enum(GENRES);
 
-export const RATING_SOURCES = ['rotten_tomatoes', 'metacritic'] as const;
+// tmdb = média dos usuários do TMDB (DEC-041), só com amostra mínima de votos (ver scripts/tmdb/map.ts).
+export const RATING_SOURCES = ['rotten_tomatoes', 'metacritic', 'tmdb'] as const;
 export const RatingSourceSchema = z.enum(RATING_SOURCES);
 export type RatingSource = z.infer<typeof RatingSourceSchema>;
 
@@ -12,10 +13,33 @@ export const RatingSchema = z.object({
   source: RatingSourceSchema,
   // Normalizado para 0–10.
   value: z.number().min(0).max(10),
-  // Texto original do Wikidata, ex.: "93%" ou "81/100".
+  // Texto original da fonte, ex.: "93%", "81/100" ou "7.8/10 (12.345 votos)".
   raw: z.string(),
 });
 export type Rating = z.infer<typeof RatingSchema>;
+
+export const WatchProviderSchema = z.object({
+  type: z.enum(['flatrate', 'rent', 'buy', 'ads', 'free']),
+  name: z.string(),
+  logoPath: z.string().nullable(),
+});
+export type WatchProvider = z.infer<typeof WatchProviderSchema>;
+
+// Dados do TMDB (cache máximo de 6 meses, apagado pelo banco depois disso). Caminhos de imagem são relativos
+// a https://image.tmdb.org/t/p/<tamanho>. Provedores de streaming vêm do JustWatch (atribuição obrigatória).
+export const TmdbInfoSchema = z.object({
+  posterPath: z.string().nullable(),
+  backdropPath: z.string().nullable(),
+  overviewPt: z.string().nullable(),
+  overviewEn: z.string().nullable(),
+  taglinePt: z.string().nullable(),
+  // Média dos usuários do TMDB (0–10) e tamanho da amostra; vira nota só com voteCount >= MIN_TMDB_VOTES.
+  voteAverage: z.number().min(0).max(10).nullable(),
+  voteCount: z.number().int().nonnegative(),
+  providers: z.array(WatchProviderSchema),
+  watchLink: z.string().nullable(),
+});
+export type TmdbInfo = z.infer<typeof TmdbInfoSchema>;
 
 export const MovieSchema = z.object({
   id: z.string().regex(/^Q\d+$/),
@@ -30,6 +54,8 @@ export const MovieSchema = z.object({
   popularity: z.number().int().nonnegative(),
   descriptionPt: z.string().nullable(),
   descriptionEn: z.string().nullable(),
+  // Ausente/nulo quando o filme ainda não foi enriquecido ou o cache venceu.
+  tmdb: TmdbInfoSchema.nullable().optional(),
 });
 export type Movie = z.infer<typeof MovieSchema>;
 

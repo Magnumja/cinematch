@@ -75,7 +75,7 @@ Status possíveis:
   no Wikidata, mas a origem é de terceiros. Se a validação for negativa, desligar o filtro de nota.
 
 ### DEC-011 — LLM
-- **Status:** Aprovado · **Data:** 2026-10-14
+- **Status:** Substituída por DEC-040 · **Data:** 2026-10-14
 - **Decisão:** Fase R$ 0 sem LLM. Depois, Claude Haiku 5.5 (US$ 0,10 / 0,50 por milhão de tokens)
   com teto diário por usuário e teto global mensal. A LLM nunca escolhe filmes: só extrai filtros.
 - **Alternativa descartada:** Gemini gratuito (dados usados para melhorar produtos e revisão humana; incompatível com dados pessoais / LGPD).
@@ -243,7 +243,7 @@ Status possíveis:
 - **Condição:** o Hobby é restrito a uso pessoal e não comercial. **Antes de qualquer monetização**, migrar para plano pago do Vercel ou para outra hospedagem.
 
 ### DEC-037 — Assistente de IA ligado com a chave do responsável
-- **Status:** Aprovado · **Data:** 2026-10-14
+- **Status:** Substituída por DEC-040 · **Data:** 2026-10-14
 - **Decisão:** Assistente ativo com Claude Haiku 5.5 (`claude-haiku-5-5`), usando a chave da API da Anthropic do responsável,
   configurada só como segredo das Edge Functions (`supabase secrets set`), nunca no repositório nem no frontend.
 - **Limites:** 10 pedidos por usuário/dia e teto global de US$ 2/mês (`AI_DAILY_LIMIT_PER_USER`, `AI_MONTHLY_BUDGET_USD`), dentro do teto de R$ 50 (DEC-003).
@@ -263,6 +263,40 @@ Status possíveis:
 - **Decisão:** O produto passa a se chamar Cineou (antes CineMatch AI). Repositório no GitHub, `project_id` do Supabase
   local e migrations já aplicadas mantêm o nome antigo, porque são identificadores técnicos.
 
+### DEC-040 — Remoção do assistente de IA (2026-10-15)
+- **Status:** Aprovado · **Data:** 2026-10-15
+- **Decisão:** O app deixa de ter IA. Saem o assistente (página, Edge Function `assistant`, `core/assistant.ts`),
+  o SDK da Anthropic, a chave `ANTHROPIC_API_KEY`, os limites `AI_*` e a tabela `ai_usage` com suas funções
+  (migration `20261015000000_remove_assistant.sql`). A exportação LGPD deixa de ter a chave `ai_usage`.
+  Substitui DEC-011 e DEC-037.
+- **Motivo:** Poder usar a API do TMDB, cujos termos (§1.C) proíbem o uso "em conexão com" aplicação de IA.
+  Manter qualquer LLM no produto, mesmo só para extrair filtros, impediria essa integração.
+- **Consequências:** "Parecido com X" deixa de ter chamador no app; o canal `requestReferences` do motor
+  continua no `core/` e em `generateAndStore`, sem uso. Recomendações antigas com `kind = 'assistant'`
+  continuam válidas no banco (a constraint não muda) e são lidas como legado. Explicações já eram
+  determinísticas (DEC-023) e não mudam.
+
+### DEC-041 — TMDB para pôsteres, sinopses, nota e onde assistir (2026-10-15)
+- **Status:** Aprovado ("caminho 1") · **Data:** 2026-10-15
+- **Decisão:** O catálogo continua vindo do Wikidata (ids, títulos, gêneros, duração, notas RT/Metacritic).
+  O TMDB complementa cada filme com pôster, imagem de fundo, sinopse PT/EN, tagline, média dos usuários
+  e onde assistir no Brasil (dados do JustWatch via TMDB). Ligação pelo P4947 do Wikidata (id do TMDB).
+  Script `npm run tmdb:enrich` (service role + `TMDB_READ_TOKEN`, nunca no frontend). Substitui DEC-007 (no
+  que diz "sem contato com o TMDB"), DEC-008 e a linha "Não usar" do TMDB em `docs/api-research.md`.
+- **Condições dos termos, todas implementadas:**
+  - Uso só não comercial, e o produto não tem IA (DEC-040).
+  - Logo do TMDB e o aviso "usa a API do TMDB, mas não é endossado nem certificado pelo TMDB" no rodapé e no detalhe do filme.
+  - Provedores de streaming sempre com "Fonte: JustWatch".
+  - Cache de no máximo 6 meses: `tmdb_fetched_at` mais `purge_stale_tmdb` diário (pg_cron, 180 dias); o script renova os dados com mais de 150 dias.
+  - Imagens carregadas direto de `image.tmdb.org`, sem hospedagem própria.
+- **Nota:** a média do TMDB entra na média exibida e filtrada só com 100 votos ou mais (`MIN_TMDB_VOTES`).
+  `rating_avg` passa a ser uma coluna gerada (`movie_rating_avg`) com a mesma regra de `core/db.ts`.
+  `ALGORITHM_VERSION` = `rules-v2`.
+- **Consequências:**
+  - Se o produto virar comercial, é preciso contrato com o TMDB ou remover a integração.
+  - Ao carregar pôsteres, o navegador do usuário acessa `image.tmdb.org`: o TMDB recebe o IP do usuário (consta na política de privacidade).
+  - Filme sem pôster mostra o card tipográfico (nunca imagem inventada).
+
 ## Pendências abertas
 
 | Item | Situação |
@@ -270,8 +304,8 @@ Status possíveis:
 | DEC-010 — reutilização das notas RT/Metacritic | PENDENTE DE VALIDAÇÃO jurídica |
 | DEC-012 — Resend no plano grátis para uso comercial | PENDENTE DE VALIDAÇÃO |
 | DEC-019 — deploy das Edge Functions inclui `core/` | Validado localmente (edge runtime); PENDENTE no primeiro deploy real |
+| DEC-041 — `append_to_response=watch/providers` | Testar com token real do TMDB |
 | DEC-031 — design system | Revisar com a logo e as referências visuais |
 | Política de privacidade | Rascunho técnico em `docs/privacy-policy-draft.md`; precisa de revisão jurídica e dados do controlador |
 | Termos de uso | A redigir antes do beta |
-| Assistente com a API real da Anthropic | Código checado por tipos e com fallback testado; chamada real a validar assim que a chave for configurada (DEC-037) |
 | Familiaridade do responsável com TS/Python | Pergunta da Fase 2 sem resposta (não bloqueia) |

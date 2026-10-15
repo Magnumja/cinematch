@@ -11,9 +11,9 @@ Regra de ouro das chaves:
 | anon public key | Vercel (`VITE_SUPABASE_ANON_KEY`) | Sim (protegida por RLS) |
 | service_role key | Só no seu terminal, para carregar o catálogo | **Nunca** |
 | Senha do banco | Só no `supabase link` | **Nunca** |
-| `ANTHROPIC_API_KEY`, `CRON_SECRET` | Segredos das Edge Functions | **Nunca** |
+| `CRON_SECRET` | Segredo das Edge Functions | **Nunca** |
 
-Nunca coloque service_role, senha do banco ou chave da Anthropic na Vercel, no `.env` versionado ou no chat.
+Nunca coloque service_role, senha do banco ou `CRON_SECRET` na Vercel, no `.env` versionado ou no chat.
 
 ---
 
@@ -62,15 +62,14 @@ openssl rand -hex 32
 
 3.2. Grave os segredos das funções (troque os valores entre `< >`):
 ```bash
-npx supabase secrets set ALLOWED_ORIGIN=https://cineou.vercel.app CRON_SECRET=<saida-do-openssl> ANTHROPIC_API_KEY=<sua-chave-anthropic> AI_DAILY_LIMIT_PER_USER=10 AI_MONTHLY_BUDGET_USD=2
+npx supabase secrets set ALLOWED_ORIGIN=https://cineou.vercel.app CRON_SECRET=<saida-do-openssl>
 ```
 - `ALLOWED_ORIGIN` precisa ser **exatamente** o domínio do site, sem barra no fim. As funções aceitam um único domínio; URLs de prévia da Vercel não vão funcionar.
-- Sem `ANTHROPIC_API_KEY`, o app funciona e só o Assistente fica desligado.
 - `SUPABASE_URL` e `SUPABASE_SERVICE_ROLE_KEY` já existem nas funções hospedadas; não precisa definir.
 
-3.3. Publique as três funções:
+3.3. Publique as duas funções:
 ```bash
-npx supabase functions deploy recommend assistant scheduled-run
+npx supabase functions deploy recommend scheduled-run
 ```
 A `scheduled-run` sobe sem verificação de JWT (definido em `supabase/config.toml`), porque quem a chama é o cron com o `CRON_SECRET`.
 
@@ -143,7 +142,6 @@ O domínio de produção `cineou.vercel.app` em geral já é público; a proteç
 | "Algo falhou ao carregar" na Home; erro de CORS no console | `ALLOWED_ORIGIN` diferente do domínio aberto | Ajustar no passo 3.2 (sem barra no fim) |
 | Home sem filmes / nenhuma recomendação compatível | Catálogo não carregado | Parte 4 |
 | Link do e-mail abre `127.0.0.1` | Site URL não configurada | Parte 5 |
-| Assistente diz que está indisponível | Sem `ANTHROPIC_API_KEY` ou limite do mês atingido | Passo 3.2 |
 | Recomendações agendadas nunca chegam | Segredos do Vault ausentes ou diferentes do `CRON_SECRET` | Passo 3.4 |
 | Erro em chamadas para `*.supabase.co` bloqueadas pela CSP | Domínio do Supabase personalizado | Ajustar `connect-src` em `vercel.json` |
 

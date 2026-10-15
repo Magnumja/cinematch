@@ -28,6 +28,7 @@ export interface RecItem extends RecommendationItem {
 
 export interface RecView {
   recommendationId: string | null;
+  // 'assistant' só aparece em recomendações antigas, de antes da remoção do assistente (DEC-038).
   kind: 'on_demand' | 'discover' | 'explore' | 'scheduled' | 'assistant';
   createdAt: string;
   // Só para agendadas: derivada do period_key.
@@ -93,38 +94,11 @@ export function relaxToContext(c: Relaxable): Partial<Constraints> {
 
 // on_demand = recomendação principal da Home; discover = busca pontual com filtros (nunca vira a principal).
 export async function requestRecommendation(
-  kind: 'on_demand' | 'discover' | 'explore' | 'assistant',
+  kind: 'on_demand' | 'discover' | 'explore',
   context?: ContextInput,
   limit = 5,
-  similarToId?: string,
 ): Promise<RecView> {
-  return toView(kind, await invoke<FunctionRecResponse>('recommend', { kind, context, limit, similarToId }));
-}
-
-export interface SimilarTo {
-  id: string;
-  titlePt: string | null;
-  titleEn: string | null;
-}
-
-export type AssistantReply =
-  | { kind: 'off_topic' }
-  | { kind: 'clarify'; question: string | null }
-  | { kind: 'recommendation'; interpreted: ContextInput; similarTo: SimilarTo | null; similarToNotFound: string | null; view: RecView };
-
-export async function askAssistant(message: string, excludeMovieIds: string[]): Promise<AssistantReply> {
-  const r = await invoke<Record<string, unknown>>('assistant', { message, excludeMovieIds });
-  if (r.kind === 'recommendation') {
-    return {
-      kind: 'recommendation',
-      interpreted: r.interpreted as ContextInput,
-      similarTo: (r.similarTo as SimilarTo | null) ?? null,
-      similarToNotFound: (r.similarToNotFound as string | null) ?? null,
-      view: toView('assistant', r as unknown as FunctionRecResponse),
-    };
-  }
-  if (r.kind === 'clarify') return { kind: 'clarify', question: (r.question as string | null) ?? null };
-  return { kind: 'off_topic' };
+  return toView(kind, await invoke<FunctionRecResponse>('recommend', { kind, context, limit }));
 }
 
 interface StoredRecRow {

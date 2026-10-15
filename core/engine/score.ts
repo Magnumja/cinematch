@@ -4,7 +4,8 @@ import type { Genre } from '../domain/genres.ts';
 import type { AffinityTier, Context, Factor, Movie, Preferences, UserMovie } from '../schemas.ts';
 import { averageRating } from './filters.ts';
 
-export const ALGORITHM_VERSION = 'rules-v1';
+// v2 (2026-10-15): nota do TMDB entra na média das notas (DEC-041).
+export const ALGORITHM_VERSION = 'rules-v2';
 
 export const WEIGHTS_V1 = {
   liked: 0.3,

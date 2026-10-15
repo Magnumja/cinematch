@@ -21,18 +21,19 @@ Ele não é um serviço de streaming: não exibe, vende nem aluga filmes, e não
 ## 4. Sobre as recomendações
 - As recomendações são sugestões geradas automaticamente por regras e pelo seu histórico. Não garantem que você vá gostar do filme.
 - A "afinidade" mostrada é uma faixa qualitativa, não uma probabilidade.
-- O assistente com IA, quando ativo, só interpreta seu pedido. Os filmes sugeridos vêm sempre do catálogo, nunca são inventados pela IA.
+- Os filmes sugeridos vêm sempre do catálogo; o Cineou não usa inteligência artificial para escolhê-los ou descrevê-los.
 
 ## 5. Dados do catálogo
 - Informações dos filmes: Wikidata, disponíveis sob licença CC0. Podem conter erros ou estar incompletas, por exemplo gêneros e durações.
 - Notas da crítica: Rotten Tomatoes e Metacritic, obtidas via Wikidata e sempre exibidas com a fonte. [Pendente de validação jurídica — DEC-010.]
+- Pôsteres, sinopses e nota dos usuários: TMDB. Este produto usa a API do TMDB, mas não é endossado nem certificado pelo TMDB.
+- Onde assistir: dados do JustWatch, via TMDB. Podem estar desatualizados; confirme no serviço antes de assinar ou alugar.
 - O Cineou não é afiliado a nenhum estúdio, serviço de streaming ou site de críticas.
 
 ## 6. Uso aceitável
 Não é permitido:
 - tentar acessar dados de outros usuários;
-- automatizar requisições em volume, contornar limites de uso ou sobrecarregar o serviço;
-- usar o assistente para fins alheios à escolha de filmes.
+- automatizar requisições em volume, contornar limites de uso ou sobrecarregar o serviço.
 
 ## 7. Limitação de responsabilidade
 O serviço é fornecido "no estado em que se encontra" durante o beta. [Revisar com profissional de direito, considerando o Código de Defesa do Consumidor.]

@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { movieToRow, parseProfile, periodKey, rowToMovie } from './db.ts';
+import { averageRating } from './engine/filters.ts';
+import { MIN_TMDB_VOTES, movieToRow, parseProfile, periodKey, rowToMovie, tmdbRating } from './db.ts';
 import type { Movie } from './schemas.ts';
 
 describe('periodKey', () => {
@@ -43,8 +44,24 @@ describe('mapeamento de linhas', () => {
       descriptionEn: '2010 film by Martin Scorsese',
     };
     const row = movieToRow(m);
-    expect(row.rating_avg).toBe(6.5);
-    expect(rowToMovie(row)).toEqual(m);
+    expect(row).not.toHaveProperty('rating_avg'); // coluna gerada pelo banco
+    expect(row).not.toHaveProperty('tmdb'); // escrita só pelo enriquecimento do TMDB
+    expect(rowToMovie(row)).toEqual({ ...m, tmdb: null });
+  });
+
+  it('nota do TMDB só entra com amostra mínima de votos e nunca é gravada em ratings', () => {
+    const base = {
+      id: 'Q1', title_pt: 'A', title_en: 'A', year: 2000, runtime_min: 100, genres: [], languages: [], directors: [],
+      ratings: [{ source: 'metacritic', value: 8, raw: '80/100' }], popularity: 10, description_pt: null, description_en: null,
+    };
+    const info = { posterPath: '/p.jpg', backdropPath: null, overviewPt: 'Sinopse', overviewEn: null, taglinePt: null, providers: [], watchLink: null };
+    const poucos = rowToMovie({ ...base, tmdb: { ...info, voteAverage: 9.9, voteCount: MIN_TMDB_VOTES - 1 } });
+    expect(poucos.ratings.map((r) => r.source)).toEqual(['metacritic']);
+    const muitos = rowToMovie({ ...base, tmdb: { ...info, voteAverage: 7.25, voteCount: 5000 } });
+    expect(muitos.ratings).toContainEqual(expect.objectContaining({ source: 'tmdb', value: 7.25 }));
+    expect(averageRating(muitos)).toBe(7.625);
+    expect(movieToRow(muitos).ratings).toEqual(base.ratings);
+    expect(tmdbRating(null)).toBeNull();
   });
 
   it('rejeita jsonb corrompido em vez de seguir silenciosamente', () => {
