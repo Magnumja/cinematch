@@ -103,7 +103,7 @@ const pt = {
   'how.dismiss': 'Entendi',
   'how.show': 'Como funciona?',
   'fb.hint': 'Sua resposta ajusta as próximas sugestões.',
-  'discover.hint': 'Dica: escolha 1 ou 2 gêneros e deixe o resto em “Qualquer”. Quanto mais filtros, menos opções.',
+  'discover.hint': 'Escolha 1 ou 2 gêneros. Menos filtros, mais opções.',
 
   'tier.high': 'Alta afinidade',
   'tier.good': 'Boa afinidade',
@@ -145,6 +145,17 @@ const pt = {
   'discover.explore': 'Fora do meu padrão',
   'discover.submit': 'Recomendar',
   'discover.results': 'Para agora',
+  'discover.wantGroup': 'O que você quer ver',
+  'discover.limitsGroup': 'Limites',
+  'discover.limitsNote': 'Começam pelos limites do seu perfil.',
+  'discover.anyGenre': 'Qualquer gênero',
+  'discover.avoidNone': 'Nada a evitar',
+  'discover.filtersNone': 'Nenhum filtro ativo',
+  'discover.filtersOne': '1 filtro ativo',
+  'discover.filtersMany': '{n} filtros ativos',
+  'discover.clearFilters': 'Limpar filtros',
+  'dropdown.clear': 'Limpar',
+  'dropdown.done': 'Concluir',
 
 
   'list.title': 'Minha lista',
@@ -346,7 +357,7 @@ const en: Record<MessageKey, string> = {
   'how.dismiss': 'Got it',
   'how.show': 'How does it work?',
   'fb.hint': 'Your answer tunes the next suggestions.',
-  'discover.hint': 'Tip: pick 1 or 2 genres and leave the rest on “Any”. More filters mean fewer options.',
+  'discover.hint': 'Pick 1 or 2 genres. Fewer filters, more options.',
 
   'tier.high': 'Strong match',
   'tier.good': 'Good match',
@@ -388,6 +399,17 @@ const en: Record<MessageKey, string> = {
   'discover.explore': 'Outside my usual',
   'discover.submit': 'Recommend',
   'discover.results': 'For right now',
+  'discover.wantGroup': 'What you want to watch',
+  'discover.limitsGroup': 'Limits',
+  'discover.limitsNote': 'They start from your profile limits.',
+  'discover.anyGenre': 'Any genre',
+  'discover.avoidNone': 'Nothing to avoid',
+  'discover.filtersNone': 'No active filters',
+  'discover.filtersOne': '1 active filter',
+  'discover.filtersMany': '{n} active filters',
+  'discover.clearFilters': 'Clear filters',
+  'dropdown.clear': 'Clear',
+  'dropdown.done': 'Done',
 
 
   'list.title': 'My list',
