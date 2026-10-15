@@ -6,7 +6,7 @@ import type { Constraints, Relaxable, UserMovie } from '../../../core/schemas.ts
 import { HowItWorks } from '../components/HowItWorks.tsx';
 import { CompactCard, HeroCard, MovieRowItem } from '../components/MovieCard.tsx';
 import { Button, ErrorState, NoMatch, SectionTitle, setAmbient } from '../components/ui.tsx';
-import { HeroSkeleton } from '../components/Skeletons.tsx';
+import { CardGridSkeleton, HeroSkeleton } from '../components/Skeletons.tsx';
 import { ApiError, latestRecommendation, relaxToContext, requestRecommendation, statesFor, type RecItem, type RecView } from '../lib/api.ts';
 import { useI18n } from '../lib/i18n.tsx';
 import { useUser } from '../lib/session.tsx';
@@ -16,6 +16,10 @@ import { useMovieActions } from '../lib/useMovieActions.ts';
 const CLOSED: ReadonlySet<RecItem['feedback']> = new Set(['skipped', 'not_interested', 'disliked', 'liked', 'watched']);
 // O servidor recebe no máximo 500 ids excluídos; mandamos só os mais recentes.
 const MAX_SHOWN = 300;
+
+// Filmes por pedido (o backend aceita até 10): 1 destaque + até 9 no grid.
+const BATCH = 10;
+const GRID = 8;
 
 const SCHEDULE_LABEL = { daily: 'home.today', weekly: 'home.weekly', monthly: 'home.monthly' } as const;
 
@@ -30,6 +34,10 @@ export default function Home() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [explore, setExplore] = useState<RecView | null>(null);
+  // Lotes extras de "Ver mais sugestões", acrescentados abaixo do grid sem trocar o destaque.
+  const [more, setMore] = useState<RecView[]>([]);
+  const [refreshing, setRefreshing] = useState(false);
+  const [exhausted, setExhausted] = useState(false);
 
   const fail = useCallback((e: unknown) => setError(e instanceof ApiError && e.code === 'rate_limited' ? t('error.rate') : t('error.generic')), [t]);
 
@@ -52,7 +60,7 @@ export default function Home() {
         return items.length > 0 ? { ...v, items } : null;
       };
       const existing = usable(scheduled) ?? usable(onDemand);
-      const v = existing ?? (await requestRecommendation('on_demand'));
+      const v = existing ?? (await requestRecommendation('on_demand', undefined, BATCH));
       setView(v);
       setIndex(0);
       setShown(v.items.map((i) => i.movieId));
@@ -77,9 +85,11 @@ export default function Home() {
     setBusy(true);
     setError(null);
     try {
-      const v = await requestRecommendation('on_demand', { excludeMovieIds: shown.slice(-MAX_SHOWN), constraints: extra ?? {} });
+      const v = await requestRecommendation('on_demand', { excludeMovieIds: shown.slice(-MAX_SHOWN), constraints: extra ?? {} }, BATCH);
       setView(v);
       setIndex(0);
+      setMore([]);
+      setExhausted(false);
       setShown((s) => [...s, ...v.items.map((i) => i.movieId)]);
     } catch (e) {
       fail(e);
@@ -109,6 +119,33 @@ export default function Home() {
     }
   }
 
+  // Troca o destaque e o grid por um conjunto novo (sem repetir o que já apareceu nesta visita).
+  async function refresh() {
+    if (busy) return;
+    setRefreshing(true);
+    await fresh();
+    setRefreshing(false);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
+  async function loadMore() {
+    if (busy) return;
+    setBusy(true);
+    setError(null);
+    try {
+      const v = await requestRecommendation('on_demand', { excludeMovieIds: shown.slice(-MAX_SHOWN) }, BATCH);
+      if (v.items.length === 0) setExhausted(true);
+      else {
+        setMore((m) => [...m, v]);
+        setShown((s) => [...s, ...v.items.map((i) => i.movieId)]);
+      }
+    } catch (e) {
+      fail(e);
+    } finally {
+      setBusy(false);
+    }
+  }
+
   async function loadExplore() {
     if (busy) return;
     setBusy(true);
@@ -123,7 +160,10 @@ export default function Home() {
 
   const hero = view?.items[index];
   const heroMovie = hero ? view.movies.get(hero.movieId) : undefined;
-  const rest = view ? view.items.filter((_, i) => i !== index).slice(0, 4) : [];
+  const grid = [
+    ...(view ? view.items.filter((_, i) => i !== index).slice(0, GRID).map((item) => ({ item, movies: view.movies })) : []),
+    ...more.flatMap((v) => v.items.map((item) => ({ item, movies: v.movies }))),
+  ];
   // Mesmo critério de Minha lista → "Quero assistir".
   const savedEntries = entries.filter((e) => e.watchlist && !e.watched).slice(0, 4);
   const exploreItem = explore?.items[0];
@@ -137,11 +177,14 @@ export default function Home() {
           <h1 className="font-display text-4xl font-bold tracking-tight sm:text-6xl">{t('home.title')}</h1>
           <p className="mt-3 hidden text-sm text-fog sm:block">{t('home.intro')}</p>
         </div>
-        {/* No celular o Descobrir já está no menu: o espaço vai para o filme. */}
-        <ArrowLink to="/discover" className="hidden min-h-11 items-center gap-4 rounded-full border border-matte px-5 text-sm hover:border-fog sm:inline-flex">{t('nav.discover')}</ArrowLink>
+        <div className="flex items-center gap-2">
+          <RefreshButton onClick={() => void refresh()} spinning={refreshing} disabled={busy || loading} />
+          {/* No celular o Descobrir já está no menu: o espaço vai para o filme. */}
+          <ArrowLink to="/discover" className="hidden min-h-11 items-center gap-4 rounded-full border border-matte px-5 text-sm hover:border-fog sm:inline-flex">{t('nav.discover')}</ArrowLink>
+        </div>
       </header>
       <section aria-live="polite">
-        {loading ? (
+        {loading || refreshing ? (
           <HeroSkeleton label={t('home.generating')} />
         ) : error ? (
           <ErrorState message={error} onRetry={() => void load()} />
@@ -168,18 +211,34 @@ export default function Home() {
 
       <HowItWorks />
 
-      {view && rest.length > 0 && (
-        <section>
-          <SectionTitle>{t('home.more')}</SectionTitle>
-          <div className="movie-grid grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-            {rest.map((item, position) => {
-              const m = view.movies.get(item.movieId);
-              return m ? (
-                <CompactCard key={item.movieId} entranceDelay={Math.min(position, 3) * 0.08} item={item} movie={m} movies={view.movies} saved={saved.has(item.movieId)} onSave={() => void saveFromRec(item)} />
-              ) : null;
-            })}
-          </div>
-        </section>
+      {refreshing ? (
+        <CardGridSkeleton count={GRID} />
+      ) : (
+        view &&
+        grid.length > 0 && (
+          <section aria-labelledby="home-more">
+            <SectionTitle action={<RefreshButton compact onClick={() => void refresh()} spinning={refreshing} disabled={busy} />}>
+              <span id="home-more">{t('home.more')}</span>
+            </SectionTitle>
+            <div className="movie-grid grid grid-cols-1 gap-3 min-[460px]:grid-cols-2 sm:gap-4 lg:grid-cols-4">
+              {grid.map(({ item, movies }, position) => {
+                const m = movies.get(item.movieId);
+                return m ? (
+                  <CompactCard key={item.movieId} entranceDelay={Math.min(position % GRID, 3) * 0.08} item={item} movie={m} movies={movies} saved={saved.has(item.movieId)} onSave={() => void saveFromRec(item)} />
+                ) : null;
+              })}
+            </div>
+            <div className="mt-6 flex flex-col items-center gap-2">
+              {exhausted ? (
+                <p className="text-sm text-fog">{t('home.exhausted')}</p>
+              ) : (
+                <Button onClick={() => void loadMore()} disabled={busy} className="min-w-48">
+                  {busy && !refreshing ? t('home.loadingMore') : t('home.loadMore')}
+                </Button>
+              )}
+            </div>
+          </section>
+        )
       )}
 
       <section className="grid gap-12 lg:grid-cols-[1fr_1fr]">
@@ -208,5 +267,26 @@ export default function Home() {
         </div>
       </section>
     </div>
+  );
+}
+
+// "Atualizar recomendações": pede um conjunto novo, sem repetir o que já apareceu nesta visita.
+function RefreshButton({ onClick, spinning, disabled, compact = false }: { onClick: () => void; spinning: boolean; disabled: boolean; compact?: boolean }) {
+  const { t } = useI18n();
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      disabled={disabled}
+      aria-label={t('home.refresh')}
+      title={t('home.refresh')}
+      className={`inline-flex min-h-11 items-center gap-2 rounded-full text-sm text-paper ring-1 ring-matte transition-colors hover:bg-graphite hover:ring-fog/40 disabled:opacity-50 ${compact ? 'px-3' : 'px-4'}`}
+    >
+      <svg aria-hidden="true" viewBox="0 0 24 24" className={`size-4 ${spinning ? 'motion-safe:animate-spin' : ''}`} fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M21 12a9 9 0 1 1-2.64-6.36" />
+        <path d="M21 3v6h-6" />
+      </svg>
+      <span className={compact ? 'hidden sm:inline' : ''}>{t('home.refreshShort')}</span>
+    </button>
   );
 }
