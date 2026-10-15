@@ -152,7 +152,7 @@ export async function generateAndStore(
   db: SupabaseClient,
   userId: string,
   opts: {
-    kind: 'on_demand' | 'discover' | 'explore' | 'scheduled' | 'assistant';
+    kind: 'on_demand' | 'discover' | 'explore' | 'scheduled';
     context?: ContextInput;
     limit?: number;
     periodKey?: string;

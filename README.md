@@ -4,7 +4,7 @@ Encontra o próximo filme certo para você: uma recomendação por vez, com o mo
 
 - Catálogo: ~102 mil filmes do [Wikidata](https://www.wikidata.org) (CC0). Notas de Rotten Tomatoes e Metacritic via Wikidata.
 - Motor de recomendação próprio, baseado em regras e explicável (`core/`).
-- Assistente com IA opcional (Claude Haiku 5.5) que só traduz o pedido em filtros.
+- Sem IA: as explicações são determinísticas, a partir dos fatores do motor (DEC-040).
 
 Documentação: [decisões](docs/decisions.md) · [arquitetura](docs/architecture.md) · [pesquisa de APIs e licenças](docs/api-research.md).
 
@@ -18,6 +18,7 @@ npx supabase start                                  # Postgres, Auth e Edge Func
 cp .env.example .env                                # preencha com os valores de `npx supabase status`
 npm run catalog:fetch -- --min-sitelinks=2          # baixa o catálogo do Wikidata (~50 min na primeira vez)
 SUPABASE_URL=... SUPABASE_SERVICE_ROLE_KEY=... npm run catalog:load
+SUPABASE_URL=... SUPABASE_SERVICE_ROLE_KEY=... TMDB_READ_TOKEN=... npm run tmdb:enrich   # pôsteres, sinopses e onde assistir (DEC-041)
 echo "CRON_SECRET=local-dev-cron-secret" > supabase/functions/.env
 npx supabase functions serve --env-file supabase/functions/.env   # em outro terminal
 npm run dev                                         # http://127.0.0.1:5173
@@ -44,15 +45,13 @@ Nada abaixo foi executado. Plano grátis em ambos; o Vercel Hobby só pode ser u
    npx supabase login
    npx supabase link --project-ref <ref>
    npx supabase db push
-   npx supabase functions deploy recommend scheduled-run assistant
+   npx supabase functions deploy recommend scheduled-run
    ```
 3. **Segredos das funções** (nunca no repositório nem no chat):
    ```bash
    npx supabase secrets set CRON_SECRET=$(openssl rand -hex 32)
    npx supabase secrets set ALLOWED_ORIGIN=https://<seu-projeto>.vercel.app
-   npx supabase secrets set ANTHROPIC_API_KEY=<sua chave>      # assistente com Haiku (DEC-037)
    ```
-   Teto de gasto: `AI_MONTHLY_BUDGET_USD` (padrão 2) e `AI_DAILY_LIMIT_PER_USER` (padrão 10).
 4. **Vault** (SQL Editor do Supabase), para o agendamento funcionar:
    ```sql
    select vault.create_secret('https://<ref>.supabase.co', 'project_url');

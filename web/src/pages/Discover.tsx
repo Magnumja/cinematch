@@ -46,6 +46,7 @@ export default function Discover() {
     <div>
       <PageHeader title={t('discover.title')} intro={t('discover.intro')} />
       <div className="space-y-8 rounded-[24px] bg-graphite/40 p-6 ring-1 ring-matte sm:p-8">
+        <p className="rounded-xl border border-ember/20 bg-ember/5 px-4 py-3 text-sm text-paper/85">{t('discover.hint')}</p>
         <div>
           <h2 className="mb-3 text-sm text-fog">{t('discover.genres')}</h2>
           <GenreSet value={prefer} onChange={(v) => { setPrefer(v); setAvoid(avoid.filter((g) => !v.includes(g))); }} />

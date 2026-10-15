@@ -11,11 +11,19 @@ import { FEEDBACK_TAGS, type FeedbackTag, type Movie } from '../../../core/schem
 import type { Feedback, RecItem } from '../lib/api.ts';
 import { useI18n } from '../lib/i18n.tsx';
 import { Button, setAmbient } from './ui.tsx';
+import { Backdrop, Poster } from './Poster.tsx';
 
-const SOURCE_NAMES = { rotten_tomatoes: 'Rotten Tomatoes', metacritic: 'Metacritic' } as const;
+const SOURCE_NAMES = { rotten_tomatoes: 'Rotten Tomatoes', metacritic: 'Metacritic', tmdb: 'TMDB' } as const;
 
 export function hueOf(movie: Movie): number {
   return GENRE_HUES[(movie.genres[0] as Genre | undefined) ?? 'drama'];
+}
+
+// Sinopse do TMDB no idioma da interface; sem ela, a descrição curta do Wikidata. Nunca mistura idiomas à toa.
+export function synopsis(movie: Movie, locale: 'pt' | 'en'): string | null {
+  const tm = movie.tmdb;
+  const own = locale === 'pt' ? (tm?.overviewPt ?? movie.descriptionPt) : (tm?.overviewEn ?? movie.descriptionEn);
+  return own ?? (locale === 'pt' ? (tm?.overviewEn ?? movie.descriptionEn) : (tm?.overviewPt ?? movie.descriptionPt)) ?? null;
 }
 
 export function MovieMeta({ movie, size = 'sm' }: { movie: Movie; size?: 'sm' | 'md' }) {
@@ -55,7 +63,7 @@ function TierLabel({ tier }: { tier: RecItem['tier'] }) {
   const { t } = useI18n();
   const color = tier === 'high' ? 'bg-ember' : tier === 'good' ? 'bg-signal-amber/80' : 'bg-fog';
   return (
-    <span className="inline-flex items-center gap-2 text-sm text-fog">
+    <span className="inline-flex items-center gap-2 text-sm text-fog" title={`${t(`tier.${tier}`)}: ${t(`how.tier.${tier}`)}`}>
       <span className={`size-1.5 rounded-full ${color}`} aria-hidden="true" />
       {t(`tier.${tier}`)}
     </span>
@@ -131,13 +139,12 @@ export function FeedbackBar({ onFeedback, current }: { onFeedback: (f: Feedback,
         <p className="text-sm text-signal-red" role="alert">
           {t('fb.failed')}
         </p>
+      ) : given && given !== 'skipped' ? (
+        <p className="text-sm text-fog" role="status">
+          {t('fb.thanks')}
+        </p>
       ) : (
-        given &&
-        given !== 'skipped' && (
-          <p className="text-sm text-fog" role="status">
-            {t('fb.thanks')}
-          </p>
-        )
+        <p className="text-xs text-fog/80">{t('fb.hint')}</p>
       )}
     </div>
   );
@@ -158,7 +165,7 @@ export function HeroCard({ item, movie, movies, saved, onSave, onFeedback, onAno
     const m = movies.get(id);
     return m ? displayTitle(m, locale) : undefined;
   });
-  const description = locale === 'pt' ? (movie.descriptionPt ?? movie.descriptionEn) : (movie.descriptionEn ?? movie.descriptionPt);
+  const description = synopsis(movie, locale);
   const title = displayTitle(movie, locale);
 
   return (
@@ -169,9 +176,10 @@ export function HeroCard({ item, movie, movies, saved, onSave, onFeedback, onAno
       className="reveal cinema-hero relative overflow-hidden rounded-[28px] bg-graphite/60 ring-1 ring-matte"
       style={{ '--film-hue': hueOf(movie) } as CSSProperties}
     >
-      {/* Faixa de cor do gênero: a única "imagem" do card. */}
+      <Backdrop movie={movie} />
       <div aria-hidden="true" className="absolute inset-y-0 left-0 w-1.5" style={{ background: `hsl(${hueOf(movie)} 55% 50% / 0.8)` }} />
-      <div className="relative grid gap-10 p-7 sm:p-10 lg:grid-cols-[1.4fr_1fr] lg:gap-14 lg:p-14">
+      <div className="relative grid gap-10 p-7 sm:p-10 lg:grid-cols-[auto_1.4fr_1fr] lg:gap-12 lg:p-14">
+        <Poster movie={movie} hue={hueOf(movie)} size="w500" className="w-36 shadow-[0_20px_50px_#0008] sm:w-44 lg:w-56 lg:self-start" />
         <div className="min-w-0">
           <div className="flex flex-wrap items-center gap-x-5 gap-y-2">
             <p className="rounded-full border border-ember/30 bg-ink/40 px-3 py-1.5 text-xs font-medium uppercase tracking-wider text-ember">{label}</p>
@@ -179,14 +187,15 @@ export function HeroCard({ item, movie, movies, saved, onSave, onFeedback, onAno
           </div>
           <h2
             id="hero-title"
-            className="mt-5 font-display text-[clamp(3.25rem,9vw,7.5rem)] leading-[0.94] font-extrabold tracking-[-0.01em] text-balance text-paper uppercase"
+            className="mt-5 font-display text-[clamp(3rem,7vw,6.25rem)] leading-[0.94] font-extrabold tracking-[-0.01em] text-balance text-paper uppercase"
           >
             {title}
           </h2>
           <div className="mt-6">
             <MovieMeta movie={movie} size="md" />
           </div>
-          {description && <p className="mt-4 max-w-[52ch] text-fog first-letter:uppercase">{description}</p>}
+          {movie.tmdb?.taglinePt && locale === 'pt' && <p className="mt-4 text-paper/90 italic">{movie.tmdb.taglinePt}</p>}
+          {description && <p className="mt-3 line-clamp-5 max-w-[60ch] text-fog first-letter:uppercase">{description}</p>}
           <AnimatedLink to={`/movie/${movie.id}`} className="mt-6 text-sm text-fog hover:text-paper">
             {t('movie.details')}
           </AnimatedLink>
@@ -236,8 +245,11 @@ export function CompactCard({ item, movie, movies, saved, onSave, entranceDelay 
     >
       <div aria-hidden="true" className="absolute inset-x-0 top-0 h-0.5" style={{ background: `hsl(${hueOf(movie)} 55% 50% / 0.7)` }} />
       <div className="min-w-0">
-        <TierLabel tier={item.tier} />
-        <h3 className="mt-7 min-h-20 font-display text-4xl leading-[0.95] font-bold text-balance text-paper uppercase">
+        <div className="flex items-start justify-between gap-3">
+          <TierLabel tier={item.tier} />
+          <Poster movie={movie} hue={hueOf(movie)} size="w185" className="w-20" />
+        </div>
+        <h3 className="mt-4 min-h-20 font-display text-4xl leading-[0.95] font-bold text-balance text-paper uppercase">
           <Link to={`/movie/${movie.id}`} className="after:absolute after:inset-0 focus-visible:outline-none">
             {displayTitle(movie, locale)}
           </Link>
@@ -267,7 +279,7 @@ export function MovieRowItem({ movie, actions }: { movie: Movie; actions?: React
       className="flex flex-col gap-3 border-b border-matte py-4 sm:flex-row sm:items-center sm:justify-between"
     >
       <div className="flex min-w-0 items-start gap-4">
-        <span aria-hidden="true" className="mt-1.5 h-8 w-1 shrink-0 rounded-full" style={{ background: `hsl(${hueOf(movie)} 55% 50% / 0.7)` }} />
+        <Poster movie={movie} hue={hueOf(movie)} size="w92" className="w-12 rounded-md" />
         <div className="min-w-0">
           <Link to={`/movie/${movie.id}`} className="font-display text-2xl leading-none font-bold text-paper uppercase hover:text-ember">
             {displayTitle(movie, locale)}

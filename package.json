@@ -10,7 +10,8 @@
     "typecheck": "tsc --noEmit -p .",
     "catalog:fetch": "node scripts/wikidata/fetch.ts",
     "catalog:load": "node scripts/wikidata/load.ts",
-    "check:functions": "npx --yes deno@2.5.6 check --config supabase/functions/deno.json supabase/functions/recommend/index.ts supabase/functions/scheduled-run/index.ts supabase/functions/assistant/index.ts"
+    "check:functions": "npx --yes deno@2.5.6 check --config supabase/functions/deno.json supabase/functions/recommend/index.ts supabase/functions/scheduled-run/index.ts",
+    "tmdb:enrich": "node scripts/tmdb/enrich.ts"
   },
   "repository": {
     "type": "git",

@@ -2,7 +2,7 @@
 -- Rodar com: npx supabase test db
 begin;
 create extension if not exists pgtap with schema extensions;
-select plan(48);
+select plan(51);
 
 -- Dados de teste (sintéticos).
 insert into auth.users (id, email) values
@@ -150,30 +150,33 @@ select ok(
   'cliente não chama release_schedule nem escreve in_retry'
 );
 
--- ---------------------------------------------------------------- Reserva atômica de IA
-select is(public.reserve_ai_request('00000000-0000-0000-0000-00000000000b', 2, 100), 'ok', 'reserva 1 de 2: ok');
-select is(public.reserve_ai_request('00000000-0000-0000-0000-00000000000b', 2, 100), 'ok', 'reserva 2 de 2: ok');
-select is(public.reserve_ai_request('00000000-0000-0000-0000-00000000000b', 2, 100), 'daily', 'reserva 3 com limite 2: daily');
-select public.add_ai_tokens('00000000-0000-0000-0000-00000000000b', 1000, 200);
+-- ---------------------------------------------------------------- Assistente de IA removido (DEC-038)
+select hasnt_table('public', 'ai_usage', 'tabela ai_usage removida');
 select ok(
-  (select requests = 2 and input_tokens = 1000 and output_tokens = 200 from public.ai_usage
-   where user_id = '00000000-0000-0000-0000-00000000000b' and day = current_date),
-  'add_ai_tokens soma tokens sem contar pedido'
-);
--- 10 milhões de tokens de saída = US$ 5 no mês, acima do teto de US$ 2.
-insert into public.ai_usage (user_id, day, requests, input_tokens, output_tokens)
-values ('00000000-0000-0000-0000-00000000000a', current_date, 1, 0, 10000000);
-select is(public.reserve_ai_request('00000000-0000-0000-0000-00000000000b', 100, 2), 'budget', 'teto do mês atingido: budget');
-select ok(
-  not has_function_privilege('authenticated', 'public.reserve_ai_request(uuid, integer, numeric)', 'execute')
-  and not has_function_privilege('authenticated', 'public.add_ai_tokens(uuid, integer, integer)', 'execute'),
-  'cliente não chama as funções de consumo de IA'
+  to_regprocedure('public.reserve_ai_request(uuid, integer, numeric)') is null
+  and to_regprocedure('public.add_ai_tokens(uuid, integer, integer)') is null
+  and to_regprocedure('public.record_ai_usage(uuid, integer, integer)') is null,
+  'funções de consumo de IA removidas'
 );
 
 -- ---------------------------------------------------------------- Nota média exata
 select col_type_is('public', 'movies', 'rating_avg', 'numeric(6,3)', 'rating_avg guarda 3 casas');
-insert into public.movies (id, title_en, runtime_min, rating_avg) values ('Q999999992', 'Rating Test', 90, 7.449);
+insert into public.movies (id, title_en, runtime_min, ratings) values ('Q999999992', 'Rating Test', 90,
+  '[{"source":"metacritic","value":7.4,"raw":"74/100"},{"source":"rotten_tomatoes","value":7.498,"raw":"7.498/10"}]');
 select ok((select rating_avg < 7.5 from public.movies where id = 'Q999999992'), 'média 7,449 não é arredondada para 7,5');
+
+-- ---------------------------------------------------------------- TMDB (DEC-041)
+select is((select rating_avg from public.movies where id = 'Q999999992'), 7.449::numeric, 'média gerada pelo banco a partir de ratings');
+update public.movies set tmdb = '{"voteAverage": 9.0, "voteCount": 99}', tmdb_fetched_at = now() where id = 'Q999999992';
+select is((select rating_avg from public.movies where id = 'Q999999992'), 7.449::numeric, 'nota do TMDB com menos de 100 votos não entra');
+update public.movies set tmdb = '{"voteAverage": 9.0, "voteCount": 5000}' where id = 'Q999999992';
+select is((select rating_avg from public.movies where id = 'Q999999992'), 7.966::numeric, 'nota do TMDB com amostra suficiente entra na média');
+select throws_ok($$ update public.movies set rating_avg = 1 where id = 'Q999999992' $$, '428C9', null, 'rating_avg não pode ser escrita (coluna gerada)');
+update public.movies set tmdb_fetched_at = now() - interval '181 days' where id = 'Q999999992';
+select ok(public.purge_stale_tmdb() >= 1, 'purge apaga dados do TMDB com mais de 180 dias');
+select ok((select tmdb is null and rating_avg = 7.449 from public.movies where id = 'Q999999992'), 'após o purge, a média volta a ser só da crítica');
+select ok(not has_function_privilege('authenticated', 'public.apply_tmdb(jsonb)', 'execute')
+  and not has_function_privilege('authenticated', 'public.purge_stale_tmdb(interval)', 'execute'), 'cliente não escreve dados do TMDB');
 
 -- ---------------------------------------------------------------- Defesa em profundidade (privilégios)
 select ok(
@@ -240,8 +243,10 @@ select ok(
 );
 select ok(
   (select not exists (
-     select 1 from jsonb_array_elements(d->'ai_usage') a where a->>'user_id' <> '00000000-0000-0000-0000-00000000000b'
-   ) and jsonb_array_length(d->'ai_usage') = 1
+     select 1 from jsonb_array_elements(d->'movies') m where m->>'user_id' <> '00000000-0000-0000-0000-00000000000b'
+   ) and not exists (
+     select 1 from jsonb_array_elements(d->'recommendations') r where r->>'user_id' <> '00000000-0000-0000-0000-00000000000b'
+   ) and not d ? 'ai_usage'
    from public.export_my_data() d),
   'exportação não traz dados de outro usuário'
 );

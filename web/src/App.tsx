@@ -2,7 +2,8 @@ import { AnimatedInput } from './components/AnimatedInput.tsx';
 // Rotas e guarda de acesso: sem sessão → login; sem onboarding → onboarding; senão o app.
 import { BrowserRouter, Navigate, Outlet, Route, Routes } from 'react-router-dom';
 import { Navbar } from './components/Navbar.tsx';
-import { lazy, Suspense, useState, type FormEvent } from 'react';
+import { TmdbAttribution } from './components/Poster.tsx';
+import { lazy, Suspense, useEffect, useState, type FormEvent } from 'react';
 import { Button, ErrorState, Skeleton } from './components/ui.tsx';
 import { supabase } from './lib/api.ts';
 import { browserLocale, LocaleProvider, useI18n } from './lib/i18n.tsx';
@@ -10,19 +11,42 @@ import { SessionProvider, useSession } from './lib/session.tsx';
 import Auth from './pages/Auth.tsx';
 import Home from './pages/Home.tsx';
 
-// Telas fora do caminho principal (login → Home) carregam sob demanda.
-const Assistant = lazy(() => import('./pages/Assistant.tsx'));
-const Discover = lazy(() => import('./pages/Discover.tsx'));
-const MovieDetail = lazy(() => import('./pages/MovieDetail.tsx'));
-const MyList = lazy(() => import('./pages/MyList.tsx'));
-const Onboarding = lazy(() => import('./pages/Onboarding.tsx'));
-const Profile = lazy(() => import('./pages/Profile.tsx'));
-const Search = lazy(() => import('./pages/Search.tsx'));
+// Telas fora do caminho principal (login → Home) carregam sob demanda e são pré-carregadas
+// quando o navegador fica ocioso, para a navegação não esperar o download na hora do clique.
+const pages = {
+  Discover: () => import('./pages/Discover.tsx'),
+  MovieDetail: () => import('./pages/MovieDetail.tsx'),
+  MyList: () => import('./pages/MyList.tsx'),
+  Onboarding: () => import('./pages/Onboarding.tsx'),
+  Profile: () => import('./pages/Profile.tsx'),
+  Search: () => import('./pages/Search.tsx'),
+};
+const Discover = lazy(pages.Discover);
+const MovieDetail = lazy(pages.MovieDetail);
+const MyList = lazy(pages.MyList);
+const Onboarding = lazy(pages.Onboarding);
+const Profile = lazy(pages.Profile);
+const Search = lazy(pages.Search);
+
+function usePrefetchPages() {
+  useEffect(() => {
+    const run = () => {
+      for (const load of Object.values(pages)) void load().catch(() => undefined);
+    };
+    if ('requestIdleCallback' in window) {
+      const id = window.requestIdleCallback(run, { timeout: 4000 });
+      return () => window.cancelIdleCallback(id);
+    }
+    const id = setTimeout(run, 2000);
+    return () => clearTimeout(id);
+  }, []);
+}
 
 const PageFallback = () => <Skeleton className="h-64" />;
 
 function Layout() {
   const { t } = useI18n();
+  usePrefetchPages();
   return (
     <>
       <a href="#main" className="sr-only focus:not-sr-only focus:fixed focus:top-3 focus:left-3 focus:z-50 focus:rounded-full focus:bg-paper focus:px-4 focus:py-2 focus:text-ink">
@@ -34,7 +58,10 @@ function Layout() {
           <Outlet />
         </Suspense>
       </main>
-      <footer className="mx-auto max-w-6xl px-5 pb-10 text-xs text-fog sm:px-8">{t('movie.source')}<span className="mt-3 block">UI: <a href="https://ui.unlumen.com" className="underline underline-offset-4 hover:text-paper">Unlumen UI</a> · <a href="https://skiper-ui.com" className="underline underline-offset-4 hover:text-paper">Skiper UI</a></span></footer>
+      <footer className="mx-auto max-w-6xl space-y-3 px-5 pb-10 text-xs text-fog sm:px-8">
+        <p>{t('movie.source')}</p>
+        <TmdbAttribution />
+        <span className="mt-3 block">UI: <a href="https://ui.unlumen.com" className="underline underline-offset-4 hover:text-paper">Unlumen UI</a> · <a href="https://skiper-ui.com" className="underline underline-offset-4 hover:text-paper">Skiper UI</a></span></footer>
     </>
   );
 }
@@ -121,7 +148,6 @@ function Gate() {
         <Route element={<Layout />}>
           <Route index element={<Home />} />
           <Route path="discover" element={<Discover />} />
-          <Route path="assistant" element={<Assistant />} />
           <Route path="list" element={<MyList />} />
           <Route path="search" element={<Search />} />
           <Route path="profile" element={<Profile />} />

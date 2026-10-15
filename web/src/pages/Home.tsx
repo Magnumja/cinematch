@@ -3,6 +3,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { AnimatedLink } from '../components/skiper-ui/AnimatedLink.tsx';
 import { hardFilterReason } from '../../../core/engine/filters.ts';
 import type { Constraints, Relaxable, UserMovie } from '../../../core/schemas.ts';
+import { HowItWorks } from '../components/HowItWorks.tsx';
 import { CompactCard, HeroCard, MovieRowItem } from '../components/MovieCard.tsx';
 import { Button, ErrorState, NoMatch, SectionTitle, Skeleton, setAmbient } from '../components/ui.tsx';
 import { ApiError, latestRecommendation, relaxToContext, requestRecommendation, statesFor, type RecItem, type RecView } from '../lib/api.ts';
@@ -48,16 +49,19 @@ export default function Home() {
     try {
       // Uma recomendação gravada antes só é reaproveitada com os itens que ainda valem HOJE:
       // o perfil (restrições) e o estado de cada filme podem ter mudado depois que ela foi gerada.
-      const usable = async (v: RecView | null): Promise<RecView | null> => {
+      // As duas buscas e a leitura de estados correm em paralelo (antes eram até 4 idas e voltas em série).
+      const [scheduled, onDemand] = await Promise.all([latestRecommendation(['scheduled'], 31), latestRecommendation(['on_demand'], 1)]);
+      const ids = [...(scheduled?.items ?? []), ...(onDemand?.items ?? [])].map((i) => i.movieId);
+      const states = ids.length > 0 ? await statesFor(userId, [...new Set(ids)]) : new Map();
+      const usable = (v: RecView | null): RecView | null => {
         if (!v) return null;
-        const states = await statesFor(userId, v.items.map((i) => i.movieId));
         const items = v.items.filter((i) => {
           const movie = v.movies.get(i.movieId);
           return movie && !CLOSED.has(i.feedback) && hardFilterReason(movie, profile.constraints, states.get(i.movieId) as UserMovie | undefined, new Set()) === null;
         });
         return items.length > 0 ? { ...v, items } : null;
       };
-      const existing = (await usable(await latestRecommendation(['scheduled'], 31))) ?? (await usable(await latestRecommendation(['on_demand'], 1)));
+      const existing = usable(scheduled) ?? usable(onDemand);
       const v = existing ?? (await requestRecommendation('on_demand'));
       setView(v);
       setIndex(0);
@@ -145,6 +149,7 @@ export default function Home() {
         </div>
         <AnimatedLink to="/discover" className="inline-flex min-h-11 items-center gap-4 rounded-full border border-matte px-5 text-sm hover:border-fog">{t('nav.discover')}</AnimatedLink>
       </header>
+      <HowItWorks />
       <section aria-live="polite">
         {loading ? (
           <HeroSkeleton label={t('home.generating')} />

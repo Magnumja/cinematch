@@ -1,19 +1,35 @@
 // Conversão entre linhas do Postgres (snake_case, jsonb) e o domínio validado.
 // Dados vindos do banco também passam por Zod: um jsonb corrompido falha alto, não silenciosamente.
-import { averageRating } from './engine/filters.ts';
 import {
   ConstraintsSchema,
   MovieSchema,
   PreferencesSchema,
+  RatingSchema,
+  TmdbInfoSchema,
   UserMovieSchema,
   type Constraints,
   type Movie,
   type Preferences,
+  type Rating,
+  type TmdbInfo,
   type UserMovie,
 } from './schemas.ts';
 
 export const MOVIE_COLUMNS =
-  'id,title_pt,title_en,year,runtime_min,genres,languages,directors,ratings,popularity,description_pt,description_en';
+  'id,title_pt,title_en,year,runtime_min,genres,languages,directors,ratings,popularity,description_pt,description_en,tmdb';
+
+// Mesma regra da função SQL movie_rating_avg (migration 20261015000100_tmdb.sql): a nota do TMDB só conta
+// com amostra mínima de votos, para um filme com 3 votos não passar num filtro de "nota mínima".
+export const MIN_TMDB_VOTES = 100;
+
+export function tmdbRating(tmdb: TmdbInfo | null): Rating | null {
+  if (!tmdb || tmdb.voteAverage === null || tmdb.voteCount < MIN_TMDB_VOTES) return null;
+  return {
+    source: 'tmdb',
+    value: tmdb.voteAverage,
+    raw: `${tmdb.voteAverage.toFixed(1)}/10 (${tmdb.voteCount} votos)`,
+  };
+}
 
 export interface MovieRow {
   id: string;
@@ -28,10 +44,14 @@ export interface MovieRow {
   popularity: number;
   description_pt: string | null;
   description_en: string | null;
-  rating_avg?: number | null;
+  tmdb?: unknown;
 }
 
 export function rowToMovie(row: MovieRow): Movie {
+  const tmdb = row.tmdb ? TmdbInfoSchema.parse(row.tmdb) : null;
+  // ratings no banco guarda só a crítica (Wikidata); a nota do TMDB entra aqui, igual à média do banco.
+  const critics = RatingSchema.array().parse(row.ratings ?? []).filter((r) => r.source !== 'tmdb');
+  const fromTmdb = tmdbRating(tmdb);
   return MovieSchema.parse({
     id: row.id,
     titlePt: row.title_pt,
@@ -41,14 +61,17 @@ export function rowToMovie(row: MovieRow): Movie {
     genres: row.genres,
     languages: row.languages,
     directors: row.directors,
-    ratings: row.ratings,
+    ratings: fromTmdb ? [...critics, fromTmdb] : critics,
     popularity: row.popularity,
     descriptionPt: row.description_pt,
     descriptionEn: row.description_en,
+    tmdb,
   });
 }
 
-export function movieToRow(m: Movie): MovieRow & { rating_avg: number | null } {
+// Linha para o upsert do catálogo do Wikidata. Não inclui tmdb (escrito só por scripts/tmdb) nem rating_avg
+// (coluna gerada pelo banco a partir de ratings + tmdb).
+export function movieToRow(m: Movie): MovieRow {
   return {
     id: m.id,
     title_pt: m.titlePt,
@@ -58,8 +81,7 @@ export function movieToRow(m: Movie): MovieRow & { rating_avg: number | null } {
     genres: m.genres,
     languages: m.languages,
     directors: m.directors,
-    ratings: m.ratings,
-    rating_avg: averageRating(m),
+    ratings: m.ratings.filter((r) => r.source !== 'tmdb'),
     popularity: m.popularity,
     description_pt: m.descriptionPt,
     description_en: m.descriptionEn,

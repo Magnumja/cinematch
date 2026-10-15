@@ -4,7 +4,11 @@
 
 ## Conclusão principal
 
-O TMDB não pode ser usado pelo Cineou sem contrato comercial. Termos da API (atualizados em 2023-10-20):
+**Atualização 2026-10-15 (DEC-040/DEC-041):** o assistente de IA foi removido, e o TMDB passou a ser usado,
+só para fins não comerciais, como complemento do catálogo do Wikidata: pôsteres, sinopses, nota e onde assistir.
+A análise abaixo continua válida para qualquer uso comercial ou com IA.
+
+Antes da atualização, o TMDB não podia ser usado pelo Cineou sem contrato comercial. Termos da API (atualizados em 2023-10-20):
 
 - §1.C proíbe *"Use the TMDB APIs or TMDB Content in connection with, including for training, a machine learning (ML)
   or artificial intelligence (AI) based Application."* — vale mesmo para uso não comercial.
@@ -18,7 +22,7 @@ Separar tecnicamente a LLM dos dados do TMDB **não** resolve, porque a restriç
 
 | Serviço | Finalidade | Comercial | Uso com IA | Custo | Cache / redistribuição | Decisão | Fonte |
 |---|---|---|---|---|---|---|---|
-| TMDB API | Catálogo, imagens, sinopses | Só com contrato | Proibido sem contrato | Grátis não comercial; comercial sob consulta | 6 meses; logo obrigatório | Não usar | [Termos](https://www.themoviedb.org/api-terms-of-use) · [FAQ](https://developer.themoviedb.org/docs/faq) |
+| TMDB API | Catálogo, imagens, sinopses | Só com contrato | Proibido sem contrato | Grátis não comercial; comercial sob consulta | 6 meses; logo obrigatório; provedores com atribuição ao JustWatch | **Usar** (não comercial, sem IA — DEC-041) | [Termos](https://www.themoviedb.org/api-terms-of-use) · [FAQ](https://developer.themoviedb.org/docs/faq) |
 | IMDb Datasets | Títulos, ratings (TSV diário) | Não ("personal and non-commercial use") | NÃO VERIFICADO | Grátis | Cópia local permitida, uso não comercial | Não usar | [Datasets](https://data.imdb.com/non-commercial-datasets/) |
 | IMDb API | Dados oficiais via AWS Data Exchange | Com contrato | NÃO VERIFICADO | Sob consulta | Contratual | Fora do orçamento (provável) | [Docs](https://data.imdb.com/documentation/) |
 | Wikidata | Catálogo estruturado | Sim — CC0 | Sim | Grátis | Livre | **Usar** | [Licensing](https://www.wikidata.org/wiki/Wikidata:Licensing) |
@@ -26,7 +30,7 @@ Separar tecnicamente a LLM dos dados do TMDB **não** resolve, porque a restriç
 | JustWatch | Disponibilidade em streaming | Sob contrato | NÃO VERIFICADO | Sob consulta | NÃO VERIFICADO | Fora do MVP | [API](https://www.justwatch.com/us/JustWatch-Streaming-API) |
 | Streaming Availability | Disponibilidade em streaming | NÃO VERIFICADO | NÃO VERIFICADO | Plano grátis existe | NÃO VERIFICADO | Reavaliar | [GitHub](https://github.com/movieofthenight/streaming-availability-api) |
 | OMDb | Metadados | Não (CC BY-NC 4.0) | — | Doação | — | Não usar | [Site](https://www.omdbapi.com/) |
-| Anthropic API | LLM | Sim | Sim | Sem plano grátis; créditos pré-pagos. Haiku 5.5: US$ 0,10 entrada / 0,50 saída por milhão de tokens | — | Usar Haiku 5.5 após fase R$ 0 | [Pricing](https://claude.com/pricing) |
+| Anthropic API | LLM | Sim | Sim | Sem plano grátis; créditos pré-pagos. Haiku 5.5: US$ 0,10 entrada / 0,50 saída por milhão de tokens | — | Não usado desde DEC-040 (assistente removido) | [Pricing](https://claude.com/pricing) |
 | Gemini API grátis | LLM | Sim | Sim | Grátis com limites | Dados usados para melhorar produtos; revisão humana; 18+ | Não usar (LGPD) | [Termos](https://ai.google.dev/gemini-api/terms) |
 | Resend | E-mail | NÃO VERIFICADO no plano grátis | — | Grátis 3.000/mês, 100/dia; Pro US$ 20 | — | Adiado (DEC-012) | [Pricing](https://resend.com/pricing) |
 

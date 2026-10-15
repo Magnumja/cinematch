@@ -105,15 +105,6 @@ try {
   assert.equal(unauth.status, 401);
   step('job agendado recusa chamada sem o segredo');
 
-  const assistant = await call('assistant', { message: 'quero um suspense curto' }, token);
-  if (process.env.EXPECT_ASSISTANT === '1') {
-    assert.equal(assistant.status, 200, JSON.stringify(assistant.json));
-    step('assistente responde');
-  } else {
-    assert.equal(assistant.status, 503);
-    assert.equal(assistant.json.error, 'assistant_disabled');
-    step('assistente desligado sem chave da Anthropic (fase R$ 0)');
-  }
 } finally {
   const { error } = await client.rpc('delete_my_account');
   assert.ifError(error);

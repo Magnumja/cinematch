@@ -11,13 +11,14 @@ Decisões e motivos: `docs/decisions.md` (fonte da verdade). Arquitetura: `docs/
 ## Stack aprovada
 - TypeScript de ponta a ponta. React 19 + Vite + Tailwind v4 (`web/`). CSS para transições simples; Motion para componentes Unlumen UI (integração solicitada pelo responsável; ver `docs/ui-component-sources.md`).
 - Supabase: Postgres + Auth + RLS + Edge Functions (Deno) + pg_cron. Frontend estático no Vercel Hobby (`vercel.json`) na fase de testes — só uso não comercial (DEC-036).
-- Catálogo: **somente Wikidata (CC0)**. TMDB, IMDb datasets e OMDb são proibidos (licença). Notas só de Rotten Tomatoes (média x/10) e Metacritic, via Wikidata.
-- LLM: Claude Haiku 5.5 (`claude-haiku-5-5`), só no assistente; chave da Anthropic do responsável como segredo das Edge Functions (DEC-037).
+- Catálogo: base no Wikidata (CC0). O TMDB complementa com pôster, sinopse, nota (≥100 votos) e onde assistir (DEC-041). O uso tem que ser não comercial, com o logo e o aviso do TMDB, o crédito "JustWatch" nos provedores e cache de no máximo 180 dias (`purge_stale_tmdb`). IMDb datasets e OMDb são proibidos.
+- Sem IA/LLM no produto (DEC-040): o assistente foi removido para permitir o uso da API do TMDB (termos §1.C).
 
 ## Estrutura
-- `core/` — domínio puro (sem I/O): `schemas.ts` (Zod), `engine/` (filtros → ranking → diversidade), `explain.ts`, `assistant.ts`, `db.ts` (mapeamento de linhas).
+- `core/` — domínio puro (sem I/O): `schemas.ts` (Zod), `engine/` (filtros → ranking → diversidade), `explain.ts`, `db.ts` (mapeamento de linhas).
 - `supabase/migrations/` — esquema, RLS, funções SQL. `supabase/tests/` — pgTAP.
-- `supabase/functions/` — `recommend`, `scheduled-run`, `assistant`; `_shared/service.ts` carrega dados e chama o `core/`.
+- `supabase/functions/` — `recommend`, `scheduled-run`; `_shared/service.ts` carrega dados e chama o `core/`.
+- `scripts/tmdb/` — `enrich.ts` (P4947 → id do TMDB; detalhes → `apply_tmdb`) e `map.ts` (resposta → `TmdbInfo`).
 - `scripts/wikidata/` — `fetch.ts` (SPARQL → `data/catalog.json`) e `load.ts` (upsert). `scripts/smoke-test.ts` — teste ponta a ponta.
 - `web/src/` — `lib/` (api, sessão, i18n), `components/`, `pages/`.
 
@@ -44,14 +45,14 @@ node scripts/smoke-test.ts  # requer SUPABASE_URL, SUPABASE_ANON_KEY, SUPABASE_S
 - Recomendação gravada é revalidada contra o perfil e os estados atuais antes de ser exibida de novo.
 - Sem resultado compatível → lista vazia + sugestões de relaxamento. Nunca recomendar fora dos filtros.
 - Mudou pesos/lógica do ranking → subir `ALGORITHM_VERSION` em `core/engine/score.ts`.
-- A LLM nunca escolhe filmes: só extrai filtros (saída estruturada + revalidação Zod). Explicações são determinísticas a partir dos fatores.
+- Explicações são determinísticas a partir dos fatores (sem LLM).
 - Compatibilidade é mostrada em faixas qualitativas, nunca em porcentagem.
 - Recomendação agendada: idempotente por `claim_due_schedules` (SKIP LOCKED) + `unique (user_id, period_key)`. Geração e entrega são separadas.
-- Tipos de recomendação: `on_demand` (principal da Home), `discover` (busca pontual, nunca vira a principal), `explore`, `scheduled`, `assistant`.
+- Tipos de recomendação: `on_demand` (principal da Home), `discover` (busca pontual, nunca vira a principal), `explore`, `scheduled`. `assistant` só existe em linhas antigas do banco (legado, DEC-040): ler, nunca gerar.
 - `core/` importa só `zod` e arquivos relativos com extensão `.ts` (roda em Node, Vite e Deno).
 
 ## Segurança e privacidade
-- Chave service role e `ANTHROPIC_API_KEY` nunca no frontend nem no repositório. `.env` é ignorado pelo git.
+- Chave service role nunca no frontend nem no repositório. `.env` é ignorado pelo git.
 - Toda tabela tem RLS. Cliente não escreve em `recommendations`; em `recommendation_items` só nas colunas de feedback.
 - Logs sem dados pessoais (só id interno e mensagem de erro).
 - LGPD: exportação de dados e exclusão de conta (cascata) no Perfil. Fontes auto-hospedadas (sem Google Fonts).

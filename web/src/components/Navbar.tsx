@@ -7,7 +7,6 @@ import logo from '../assets/cineou-logo.png';
 const LINKS: { to: string; key: MessageKey }[] = [
   { to: '/', key: 'nav.home' },
   { to: '/discover', key: 'nav.discover' },
-  { to: '/assistant', key: 'nav.assistant' },
   { to: '/list', key: 'nav.list' },
   { to: '/search', key: 'nav.search' },
 ];
