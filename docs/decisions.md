@@ -311,6 +311,31 @@ Status possíveis:
   - Busca sem acento e também pelo título pt-BR do TMDB (`search_normalize`).
 - **Próximo (pacote 2):** filtro "nos meus streamings", cadastro escolhendo pôsteres e similaridade com dados do TMDB.
 
+### DEC-043 — Revisão dos termos do TMDB: nota separada, página de créditos (2026-10-15)
+- **Status:** Aprovado · **Data:** 2026-10-15
+- **Fontes conferidas:** termos da API do TMDB (versão de 2023-10-20), o FAQ de desenvolvedores e a página de watch providers.
+- **Situação do Cineou em cada ponto:**
+  - §2.A, comercial: sem receita, anúncios ou cobrança, e na Vercel Hobby. OK enquanto continuar assim.
+  - §1.C, IA/ML: sem IA (DEC-040); o motor usa regras fixas.
+  - §1.C, cache de 6 meses: renovação aos 150 dias e purge aos 180.
+  - §1.C, "image hosting": as imagens vêm direto de image.tmdb.org, sem hospedagem própria.
+  - §3 e FAQ, atribuição: logo oficial sem alteração, menor que a marca do Cineou.
+  - Watch providers: crédito "via JustWatch" em todo lugar que mostra provedores, e link para a página do TMDB.
+  - §1.D, rescisão: apagar o conteúdo com `update public.movies set tmdb = null, tmdb_fetched_at = null, tmdb_id = null;`.
+- **Mudanças:**
+  1. A nota dos usuários do TMDB sai da média `rating_avg`, do filtro "nota mínima da crítica" e do ranking, e passa a
+     ser exibida à parte ("Usuários do TMDB: 7,8"). Misturar as fontes criaria uma nota derivada do conteúdo do TMDB
+     (§1.C proíbe "derivatives"), além de chamar usuários de crítica. Migration `rating_critics_only`, `ALGORITHM_VERSION = rules-v3`.
+     Substitui a parte de nota da DEC-041.
+  2. Página `/about` ("Sobre e créditos"), aberta mesmo sem login, porque o FAQ pede a atribuição numa seção "About"/"Credits".
+     Linkada no rodapé e na tela de login.
+  3. O aviso passa a usar o texto do §3 ("uses TMDB and the TMDB APIs but is not endorsed, certified, or otherwise approved by TMDB").
+  4. A tela de login deixa de dizer "aprende com o que você assiste", para não sugerir aprendizado de máquina.
+- **Riscos que continuam:**
+  - O TMDB pode encerrar a chave a qualquer momento (§1.D/§5); o app funciona sem esses dados, como card tipográfico.
+  - Qualquer receita futura (anúncio, assinatura, afiliado) exige contrato comercial.
+  - Usar `/recommendations` do TMDB para ranquear (pacote 2) também precisa ser avaliado contra a proibição de "derivatives".
+
 ## Pendências abertas
 
 | Item | Situação |

@@ -3,7 +3,7 @@ import { useState, type CSSProperties, type ReactNode } from 'react';
 import { Tilt } from './unlumen-ui/Tilt.tsx';
 import { AnimatedLink } from './skiper-ui/AnimatedLink.tsx';
 import { Link } from 'react-router-dom';
-import { displayTitle } from '../../../core/db.ts';
+import { displayTitle, tmdbUserScore } from '../../../core/db.ts';
 import { GENRE_HUES, GENRE_LABELS, type Genre } from '../../../core/domain/genres.ts';
 import { averageRating, formatRating } from '../../../core/engine/filters.ts';
 import { explain } from '../../../core/explain.ts';
@@ -13,7 +13,7 @@ import { useI18n } from '../lib/i18n.tsx';
 import { Button, setAmbient } from './ui.tsx';
 import { Backdrop, Poster, ProviderBadges, TrailerLink } from './Poster.tsx';
 
-const SOURCE_NAMES = { rotten_tomatoes: 'Rotten Tomatoes', metacritic: 'Metacritic', tmdb: 'TMDB' } as const;
+const SOURCE_NAMES = { rotten_tomatoes: 'Rotten Tomatoes', metacritic: 'Metacritic' } as const;
 
 export function hueOf(movie: Movie): number {
   return GENRE_HUES[(movie.genres[0] as Genre | undefined) ?? 'drama'];
@@ -31,6 +31,7 @@ export function synopsis(movie: Movie, locale: 'pt' | 'en'): string | null {
 export function MovieMeta({ movie, size = 'sm' }: { movie: Movie; size?: 'sm' | 'md' }) {
   const { t, locale } = useI18n();
   const avg = averageRating(movie);
+  const userScore = tmdbUserScore(movie.tmdb);
   return (
     <dl className={`flex flex-wrap items-center gap-x-4 gap-y-1 text-fog ${size === 'md' ? 'text-base' : 'text-sm'}`}>
       {movie.year && (
@@ -57,6 +58,12 @@ export function MovieMeta({ movie, size = 'sm' }: { movie: Movie; size?: 'sm' | 
             : t('movie.noRating')}
         </dd>
       </div>
+      {userScore && (
+        <div>
+          <dt className="sr-only">TMDB</dt>
+          <dd>{t('movie.tmdbScore', { value: formatRating(userScore.value) })}</dd>
+        </div>
+      )}
     </dl>
   );
 }

@@ -5,7 +5,7 @@ import { GENRES } from './domain/genres.ts';
 export const GenreSchema = z.enum(GENRES);
 
 // tmdb = média dos usuários do TMDB (DEC-041), só com amostra mínima de votos (ver scripts/tmdb/map.ts).
-export const RATING_SOURCES = ['rotten_tomatoes', 'metacritic', 'tmdb'] as const;
+export const RATING_SOURCES = ['rotten_tomatoes', 'metacritic'] as const;
 export const RatingSourceSchema = z.enum(RATING_SOURCES);
 export type RatingSource = z.infer<typeof RatingSourceSchema>;
 
@@ -33,7 +33,7 @@ export const TmdbInfoSchema = z.object({
   overviewPt: z.string().nullable(),
   overviewEn: z.string().nullable(),
   taglinePt: z.string().nullable(),
-  // Média dos usuários do TMDB (0–10) e tamanho da amostra; vira nota só com voteCount >= MIN_TMDB_VOTES.
+  // Média dos usuários do TMDB (0–10) e tamanho da amostra; exibida à parte (nunca misturada à crítica — DEC-043).
   voteAverage: z.number().min(0).max(10).nullable(),
   voteCount: z.number().int().nonnegative(),
   providers: z.array(WatchProviderSchema),

@@ -58,7 +58,7 @@ describe('TmdbAttribution', () => {
   it('mostra o logo do TMDB e o aviso de não endosso exigidos pelos termos', () => {
     renderWithProviders(<TmdbAttribution />);
     expect(screen.getByAltText('TMDB')).toBeInTheDocument();
-    expect(screen.getByText(/não é endossado nem certificado pelo TMDB/)).toBeInTheDocument();
+    expect(screen.getByText(/não é endossado, certificado nem aprovado de outra forma pelo TMDB/)).toBeInTheDocument();
   });
 });
 
