@@ -45,12 +45,13 @@ Nada abaixo foi executado. Plano grátis em ambos; o Vercel Hobby só pode ser u
    npx supabase login
    npx supabase link --project-ref <ref>
    npx supabase db push
-   npx supabase functions deploy recommend scheduled-run
+   npx supabase functions deploy recommend scheduled-run deliver-push
    ```
 3. **Segredos das funções** (nunca no repositório nem no chat):
    ```bash
    npx supabase secrets set CRON_SECRET=$(openssl rand -hex 32)
    npx supabase secrets set ALLOWED_ORIGIN=https://<seu-projeto>.vercel.app
+   npm run push:keys   # avisos no celular (DEC-048): grave VAPID_* com secrets set e a pública na Vercel
    ```
 4. **Vault** (SQL Editor do Supabase), para o agendamento funcionar:
    ```sql

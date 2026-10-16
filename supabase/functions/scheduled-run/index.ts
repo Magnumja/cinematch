@@ -3,7 +3,7 @@
 // Resiliência: lote pequeno + orçamento de tempo; quem foi reservado e não processado volta à fila
 // (release_schedule); execuções anteriores interrompidas são marcadas como falhas no início.
 import { periodKey } from '../../../core/db.ts';
-import { generateAndStore, json, serviceClient } from '../_shared/service.ts';
+import { generateAndStore, json, serviceClient, timingSafeEqual } from '../_shared/service.ts';
 
 const BATCH = 10;
 // Abaixo do timeout de 30 s do pg_net e do limite de execução da Edge Function.
@@ -11,13 +11,6 @@ const TIME_BUDGET_MS = 20_000;
 const STALE_AFTER_MS = 10 * 60_000;
 
 type Due = { user_id: string; frequency: 'daily' | 'weekly' | 'monthly'; timezone: string; due_at: string };
-
-function timingSafeEqual(a: string, b: string): boolean {
-  if (a.length !== b.length) return false;
-  let diff = 0;
-  for (let i = 0; i < a.length; i++) diff |= a.charCodeAt(i) ^ b.charCodeAt(i);
-  return diff === 0;
-}
 
 // Chamada RPC com erro checado e logado (só id interno e mensagem; nada de dado pessoal).
 async function rpcLogged(db: ReturnType<typeof serviceClient>, fn: string, args: Record<string, unknown>, userId: string): Promise<boolean> {

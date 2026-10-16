@@ -147,6 +147,7 @@ Status possíveis:
 - **Status:** Aprovado (delegado)
 - **Decisão:** No MVP a entrega é só dentro do app (card "Seu filme da semana"). E-mail fica para depois de DEC-012.
   Geração e entrega são processos separados.
+  (Ampliada pela DEC-048: avisos no celular por Web Push.)
 
 ### DEC-025 — Animações sem biblioteca
 - **Status:** Aprovado (delegado)
@@ -390,6 +391,30 @@ Status possíveis:
   - Prateleira com menos de 4 filmes não aparece.
   - Só filmes com pôster.
 
+### DEC-048 — Avisos no celular por Web Push; Perfil em abas (2026-10-16)
+- **Status:** Aprovado · **Data:** 2026-10-16
+- **Decisão:** a recomendação programada também chega como notificação na barra do celular, por Web Push
+  (padrão dos navegadores), além do card na Home. Amplia a DEC-024.
+- **Por que não WebSocket:** WebSocket (inclusive o Realtime do Supabase) só funciona com a página aberta; não
+  chega à barra de notificações com o app fechado.
+- **Como funciona:**
+  - O usuário ativa em Perfil → Avisos, por aparelho. A permissão do navegador só é pedida no clique.
+  - O navegador gera a inscrição; o app grava em `push_subscriptions` pela função `register_push_subscription`
+    (RLS: o cliente só lê e apaga as próprias; até 10 aparelhos por conta).
+  - Entrega separada da geração: a Edge Function `deliver-push` roda no pg_cron 7 minutos depois de cada
+    `scheduled-run`, reserva as agendadas das últimas 12 h com `claim_push_deliveries` (SKIP LOCKED, marca
+    `push_notified_at`) e envia. Um aviso nunca sai duas vezes; se falhar, a recomendação continua na Home.
+  - Criptografia (RFC 8291) e VAPID (RFC 8292) implementadas com WebCrypto, sem dependência
+    (`supabase/functions/_shared/webpush.ts`), conferidas contra as bibliotecas `http_ece` e `web-push`.
+  - Só envia para serviços de push conhecidos (Google, Mozilla, Apple, Microsoft), checado no banco e na função.
+  - Inscrições expiradas (404/410) ou com 5 falhas seguidas são apagadas. Sair da conta desliga os avisos do aparelho.
+- **Custo:** R$ 0. Os serviços de push dos navegadores são gratuitos.
+- **Limites:** no iPhone, só com o Cineou adicionado à tela de início (iOS 16.4+). Permissão negada só volta pelas
+  configurações do navegador.
+- **Conteúdo do aviso:** "Seu filme da semana" (ou do dia/mês) + título e ano do filme. Vai cifrado até o aparelho.
+- **Perfil em abas:** Gosto, Filtros, Avisos e Conta, com a aba no endereço (`/profile?tab=alerts`). "Nunca
+  recomendar" saiu de Gosto e foi para Filtros, junto com os outros limites obrigatórios (DEC-021).
+
 ## Pendências abertas
 
 | Item | Situação |
@@ -398,6 +423,7 @@ Status possíveis:
 | DEC-012 — Resend no plano grátis para uso comercial | PENDENTE DE VALIDAÇÃO |
 | DEC-019 — deploy das Edge Functions inclui `core/` | Validado localmente (edge runtime); PENDENTE no primeiro deploy real |
 | DEC-041 — `append_to_response=watch/providers` | Testar com token real do TMDB |
+| DEC-048 — Web Push | Testar no primeiro deploy: Android (Chrome) e iPhone com o app na tela de início |
 | DEC-031 — design system | Revisar com a logo e as referências visuais |
 | Política de privacidade | Rascunho técnico em `docs/privacy-policy-draft.md`; precisa de revisão jurídica e dados do controlador |
 | Termos de uso | A redigir antes do beta |

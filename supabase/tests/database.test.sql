@@ -1,8 +1,8 @@
--- Testes do banco: RLS, imutabilidade de colunas, agendamento idempotente e exclusão de conta.
+-- Testes do banco: RLS, imutabilidade de colunas, agendamento idempotente, avisos por push e exclusão de conta.
 -- Rodar com: npx supabase test db
 begin;
 create extension if not exists pgtap with schema extensions;
-select plan(66);
+select plan(80);
 
 -- Dados de teste (sintéticos).
 insert into auth.users (id, email) values
@@ -309,6 +309,74 @@ select has_index('public', 'movies', 'movies_tmdb_pending_idx', 'índice parcial
 select is(public.search_normalize('Amélie AÇÃO'), 'amelie acao', 'search_normalize tira acento e caixa');
 update public.movies set tmdb = coalesce(tmdb, '{}'::jsonb) || '{"titlePt": "Título Só No TMDB"}' where id = 'Q999999992';
 select ok((select search_text like '%titulo so no tmdb%' from public.movies where id = 'Q999999992'), 'busca inclui o título pt-BR do TMDB, sem acento');
+
+-- ---------------------------------------------------------------- Avisos no celular (Web Push, DEC-048)
+insert into auth.users (id, email) values ('00000000-0000-0000-0000-00000000000c', 'c@test.local');
+set local role authenticated;
+set local request.jwt.claims = '{"sub":"00000000-0000-0000-0000-00000000000b","role":"authenticated"}';
+select lives_ok(
+  $$ select public.register_push_subscription('https://fcm.googleapis.com/fcm/send/aparelho-1', repeat('A', 87), repeat('B', 22)) $$,
+  'B inscreve um aparelho'
+);
+select is((select count(*)::int from public.push_subscriptions), 1, 'B vê a própria inscrição');
+select throws_ok(
+  $$ insert into public.push_subscriptions (user_id, endpoint, p256dh, auth)
+     values ('00000000-0000-0000-0000-00000000000b', 'https://fcm.googleapis.com/fcm/send/x', repeat('A', 87), repeat('B', 22)) $$,
+  '42501', null, 'cliente não insere inscrição direto (só pela função)'
+);
+select throws_ok(
+  $$ select public.register_push_subscription('https://169.254.169.254/latest', repeat('A', 87), repeat('B', 22)) $$,
+  '23514', null, 'endpoint fora dos serviços de push é recusado'
+);
+select throws_ok($$ select public.claim_push_deliveries(10) $$, '42501', null, 'cliente não reserva entregas de push');
+
+set local request.jwt.claims = '{"sub":"00000000-0000-0000-0000-00000000000c","role":"authenticated"}';
+select is((select count(*)::int from public.push_subscriptions), 0, 'C não vê a inscrição de B');
+delete from public.push_subscriptions;
+reset role;
+select is((select count(*)::int from public.push_subscriptions), 1, 'C não apaga a inscrição de B');
+set local role authenticated;
+set local request.jwt.claims = '{"sub":"00000000-0000-0000-0000-00000000000c","role":"authenticated"}';
+select lives_ok(
+  $$ select public.register_push_subscription('https://fcm.googleapis.com/fcm/send/aparelho-1', repeat('C', 87), repeat('D', 22)) $$,
+  'outra conta no mesmo aparelho reinscreve o endpoint'
+);
+reset role;
+select is(
+  (select user_id from public.push_subscriptions where endpoint = 'https://fcm.googleapis.com/fcm/send/aparelho-1'),
+  '00000000-0000-0000-0000-00000000000c'::uuid,
+  'a inscrição passa para a conta que entrou por último'
+);
+
+-- Fila de entrega: só agendadas recentes de quem tem aparelho; cada uma uma única vez.
+insert into public.recommendations (id, user_id, kind, period_key, algorithm_version, applied_constraints, candidate_count) values
+  ('10000000-0000-0000-0000-0000000000c1', '00000000-0000-0000-0000-00000000000c', 'scheduled', 'scheduled:2026-10-16', 'x', '{}', 1),
+  ('10000000-0000-0000-0000-0000000000c2', '00000000-0000-0000-0000-00000000000c', 'scheduled', 'scheduled:2026-10-15', 'x', '{}', 1),
+  ('10000000-0000-0000-0000-0000000000b1', '00000000-0000-0000-0000-00000000000b', 'scheduled', 'scheduled:2026-10-16', 'x', '{}', 1);
+update public.recommendations set created_at = now() - interval '1 day' where id = '10000000-0000-0000-0000-0000000000c2';
+insert into public.recommendation_items (recommendation_id, movie_id, rank, score, tier) values
+  ('10000000-0000-0000-0000-0000000000c1', 'Q999999991', 1, 0.5, 'good'),
+  ('10000000-0000-0000-0000-0000000000c2', 'Q999999991', 1, 0.5, 'good'),
+  ('10000000-0000-0000-0000-0000000000b1', 'Q999999991', 1, 0.5, 'good');
+select results_eq(
+  $$ select recommendation_id, movie_id from public.claim_push_deliveries(10) $$,
+  $$ values ('10000000-0000-0000-0000-0000000000c1'::uuid, 'Q999999991'::text) $$,
+  'reserva só a agendada recente de quem tem aparelho inscrito'
+);
+select is((select count(*)::int from public.claim_push_deliveries(10)), 0, 'o mesmo aviso nunca é reservado duas vezes');
+
+set local role authenticated;
+set local request.jwt.claims = '{"sub":"00000000-0000-0000-0000-00000000000c","role":"authenticated"}';
+select public.register_push_subscription('https://fcm.googleapis.com/fcm/send/aparelho-' || g, repeat('A', 87), repeat('B', 22))
+  from generate_series(2, 10) g;
+select throws_ok(
+  $$ select public.register_push_subscription('https://fcm.googleapis.com/fcm/send/aparelho-11', repeat('A', 87), repeat('B', 22)) $$,
+  '54000', null, 'limite de 10 aparelhos por conta'
+);
+select is(jsonb_array_length(public.export_my_data()->'push_devices'), 10, 'exportação (LGPD) lista os aparelhos inscritos');
+reset role;
+delete from auth.users where id = '00000000-0000-0000-0000-00000000000c';
+select is((select count(*)::int from public.push_subscriptions), 0, 'excluir a conta apaga as inscrições em cascata');
 
 select * from finish();
 rollback;

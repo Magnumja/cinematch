@@ -105,6 +105,14 @@ try {
   assert.equal(unauth.status, 401);
   step('job agendado recusa chamada sem o segredo');
 
+  // Entrega por push (DEC-048): sem aparelho inscrito não há o que enviar. Sem chaves VAPID no
+  // supabase/functions/.env a função responde 503 e não reserva nada.
+  const deliver = await call('deliver-push', {}, CRON_SECRET);
+  assert.ok(deliver.status === 200 || deliver.status === 503, JSON.stringify(deliver.json));
+  if (deliver.status === 200) assert.equal((deliver.json as unknown as { sent: number }).sent, 0);
+  assert.equal((await call('deliver-push', {}, 'wrong-secret')).status, 401);
+  step('entrega de push protegida pelo segredo e sem envio para quem não tem aparelho');
+
 } finally {
   const { error } = await client.rpc('delete_my_account');
   assert.ifError(error);

@@ -17,7 +17,7 @@ Decisões e motivos: `docs/decisions.md` (fonte da verdade). Arquitetura: `docs/
 ## Estrutura
 - `core/` — domínio puro (sem I/O): `schemas.ts` (Zod), `engine/` (filtros → ranking → diversidade), `explain.ts`, `db.ts` (mapeamento de linhas).
 - `supabase/migrations/` — esquema, RLS, funções SQL. `supabase/tests/` — pgTAP.
-- `supabase/functions/` — `recommend`, `scheduled-run`; `_shared/service.ts` carrega dados e chama o `core/`.
+- `supabase/functions/` — `recommend`, `scheduled-run`, `deliver-push` (avisos Web Push, DEC-048); `_shared/service.ts` carrega dados e chama o `core/`; `_shared/webpush.ts` cifra e assina o push (WebCrypto, sem dependência).
 - `scripts/tmdb/` — `enrich.ts` (P4947 → id do TMDB; detalhes → `apply_tmdb`) e `map.ts` (resposta → `TmdbInfo`).
 - `scripts/wikidata/` — `fetch.ts` (SPARQL → `data/catalog.json`) e `load.ts` (upsert). `scripts/smoke-test.ts` — teste ponta a ponta.
 - `web/src/` — `lib/` (api, sessão, i18n), `components/`, `pages/`.
@@ -47,7 +47,8 @@ node scripts/smoke-test.ts  # requer SUPABASE_URL, SUPABASE_ANON_KEY, SUPABASE_S
 - Mudou pesos/lógica do ranking → subir `ALGORITHM_VERSION` em `core/engine/score.ts`.
 - Explicações são determinísticas a partir dos fatores (sem LLM).
 - Compatibilidade é mostrada em faixas qualitativas, nunca em porcentagem.
-- Recomendação agendada: idempotente por `claim_due_schedules` (SKIP LOCKED) + `unique (user_id, period_key)`. Geração e entrega são separadas.
+- Recomendação agendada: idempotente por `claim_due_schedules` (SKIP LOCKED) + `unique (user_id, period_key)`. Geração e entrega são separadas: o aviso no celular sai pelo `deliver-push` (`claim_push_deliveries`, no máximo uma vez por recomendação).
+- Web Push: só para endpoints de serviços de push conhecidos (checado no banco e na função). Avisos não usam WebSocket.
 - Tipos de recomendação: `on_demand` (principal da Home), `discover` (busca pontual, nunca vira a principal), `explore`, `scheduled`. `assistant` só existe em linhas antigas do banco (legado, DEC-040): ler, nunca gerar.
 - `core/` importa só `zod` e arquivos relativos com extensão `.ts` (roda em Node, Vite e Deno).
 
