@@ -259,3 +259,7 @@ button:not(:disabled), a { touch-action: manipulation; }
   .trailer-ambient { animation: ambient-breathe 7s ease-in-out infinite; }
 }
 .trailer-dialog[open] { animation: reveal 0.35s var(--ease-calm, ease-out) both; }
+
+/* Prateleiras: rolagem horizontal sem barra visível (toque, trackpad e setas continuam funcionando). */
+.no-scrollbar { scrollbar-width: none; }
+.no-scrollbar::-webkit-scrollbar { display: none; }

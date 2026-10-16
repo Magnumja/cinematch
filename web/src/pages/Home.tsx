@@ -1,13 +1,15 @@
 // Home: um filme em destaque, poucas seções abaixo. Abrir a página não gera recomendação nova se já existe uma recente.
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { GENRE_LABELS } from '../../../core/domain/genres.ts';
+import { Shelf } from '../components/Shelf.tsx';
 import { ArrowLink } from '../components/ArrowLink.tsx';
 import { hardFilterReason } from '../../../core/engine/filters.ts';
-import type { Constraints, Relaxable, UserMovie } from '../../../core/schemas.ts';
+import type { Constraints, Movie, Relaxable, UserMovie } from '../../../core/schemas.ts';
 import { HowItWorks } from '../components/HowItWorks.tsx';
 import { CompactCard, HeroCard, MovieRowItem } from '../components/MovieCard.tsx';
 import { Button, ErrorState, NoMatch, SectionTitle, setAmbient } from '../components/ui.tsx';
 import { CardGridSkeleton, HeroSkeleton } from '../components/Skeletons.tsx';
-import { ApiError, latestRecommendation, relaxToContext, requestRecommendation, statesFor, type RecItem, type RecView } from '../lib/api.ts';
+import { ApiError, browseMovies, latestRecommendation, type ShelfQuery, relaxToContext, requestRecommendation, statesFor, type RecItem, type RecView } from '../lib/api.ts';
 import { useI18n } from '../lib/i18n.tsx';
 import { useUser } from '../lib/session.tsx';
 import { useMovieActions } from '../lib/useMovieActions.ts';
@@ -20,11 +22,14 @@ const MAX_SHOWN = 300;
 // Filmes por pedido (o backend aceita até 10): 1 destaque + até 9 no grid.
 const BATCH = 10;
 const GRID = 8;
+// Prateleiras: até 16 filmes; com menos de 4 compatíveis, a prateleira não aparece.
+const SHELF_MAX = 16;
+const SHELF_MIN = 4;
 
 const SCHEDULE_LABEL = { daily: 'home.today', weekly: 'home.weekly', monthly: 'home.monthly' } as const;
 
 export default function Home() {
-  const { t } = useI18n();
+  const { t, locale } = useI18n();
   const { userId, profile } = useUser();
   const { saved, saveFromRec, feedback, entries } = useMovieActions();
   const [view, setView] = useState<RecView | null>(null);
@@ -158,12 +163,56 @@ export default function Home() {
     }
   }
 
+  // ---- Prateleiras (DEC-047): navegação pelo catálogo, carregada depois do destaque, em paralelo.
+  const shelfDefs = useMemo((): { key: string; title: string; subtitle?: string; q: ShelfQuery }[] => {
+    const liked = profile.preferences.likedGenres;
+    const year = new Date().getFullYear();
+    const genreShelf = (i: number) =>
+      liked[i] ? [{ key: `g${i}`, title: t('shelf.genre', { genre: GENRE_LABELS[liked[i]!][locale] }), q: { genres: [liked[i]!] } as ShelfQuery }] : [];
+    return [
+      ...genreShelf(0),
+      { key: 'stream', title: t('shelf.streaming'), subtitle: t('shelf.streamingSub'), q: { streaming: true } as ShelfQuery },
+      { key: 'recent', title: t('shelf.recent'), subtitle: t('shelf.recentSub', { year: year - 3 }), q: { minYear: year - 3 } as ShelfQuery },
+      { key: 'classics', title: t('shelf.classics'), subtitle: t('shelf.classicsSub'), q: { maxYear: 1995, minRating: 8 } as ShelfQuery },
+      ...genreShelf(1),
+      { key: 'short', title: t('shelf.short'), subtitle: t('shelf.shortSub'), q: { maxRuntimeMin: 100 } as ShelfQuery },
+    ];
+  }, [profile.preferences.likedGenres, t, locale]);
+  const [rawShelves, setRawShelves] = useState<Record<string, Movie[] | undefined>>({});
+  const shelvesStarted = useRef(false);
+  useEffect(() => {
+    if (loading || shelvesStarted.current) return;
+    shelvesStarted.current = true;
+    for (const d of shelfDefs) {
+      browseMovies(d.q, profile.constraints, 30)
+        .then((movies) => setRawShelves((r) => ({ ...r, [d.key]: movies })))
+        .catch(() => setRawShelves((r) => ({ ...r, [d.key]: [] })));
+    }
+  }, [loading, shelfDefs, profile.constraints]);
+
   const hero = view?.items[index];
   const heroMovie = hero ? view.movies.get(hero.movieId) : undefined;
   const grid = [
     ...(view ? view.items.filter((_, i) => i !== index).slice(0, GRID).map((item) => ({ item, movies: view.movies })) : []),
     ...more.flatMap((v) => v.items.map((item) => ({ item, movies: v.movies }))),
   ];
+  // Revalida cada prateleira com as restrições e os estados atuais (já vistos, sem interesse, não gostei) e tira
+  // repetições: um filme aparece uma vez só na página (destaque, grid ou a primeira prateleira em que couber).
+  const shelves = useMemo(() => {
+    const states = new Map(entries.map((e) => [e.movieId, e as UserMovie]));
+    // "Não curto" é preferência (só pesa no ranking), mas numa prateleira de navegação seria descuido mostrar.
+    const disliked = new Set(profile.preferences.dislikedGenres);
+    const seen = new Set<string>([...(hero ? [hero.movieId] : []), ...grid.map((g) => g.item.movieId)]);
+    return shelfDefs.map((d) => {
+      const raw = rawShelves[d.key];
+      const movies = (raw ?? [])
+        .filter((m) => !seen.has(m.id) && !m.genres.some((g) => disliked.has(g)))
+        .filter((m) => hardFilterReason(m, profile.constraints, states.get(m.id), new Set()) === null)
+        .slice(0, SHELF_MAX);
+      movies.forEach((m) => seen.add(m.id));
+      return { ...d, loading: raw === undefined, movies };
+    });
+  }, [shelfDefs, rawShelves, entries, hero, grid, profile.constraints, profile.preferences.dislikedGenres]);
   // Mesmo critério de Minha lista → "Quero assistir".
   const savedEntries = entries.filter((e) => e.watchlist && !e.watched).slice(0, 4);
   const exploreItem = explore?.items[0];
@@ -239,6 +288,10 @@ export default function Home() {
             </div>
           </section>
         )
+      )}
+
+      {shelves.map((s) =>
+        s.loading || s.movies.length >= SHELF_MIN ? <Shelf key={s.key} title={s.title} subtitle={s.subtitle} movies={s.movies} loading={s.loading} /> : null,
       )}
 
       <section className="grid gap-12 lg:grid-cols-[1fr_1fr]">

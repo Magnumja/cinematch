@@ -1,5 +1,6 @@
 // Acesso a dados do frontend. Só usa a chave pública; toda escrita sensível passa por RLS ou Edge Function.
 import { createClient } from '@supabase/supabase-js';
+import type { Genre } from '../../../core/domain/genres.ts';
 import { MOVIE_COLUMNS, rowToMovie, rowToUserMovie, type MovieRow, type UserMovieRow } from '../../../core/db.ts';
 import {
   ConstraintsSchema,
@@ -243,6 +244,43 @@ export async function listUserMovies(userId: string): Promise<UserMovieEntry[]> 
     movie: rowToMovie(r.movies),
     updatedAt: r.updated_at,
   }));
+}
+
+// ---------------------------------------------------------------- Prateleiras da Home (DEC-047)
+// Navegação pelo catálogo, não recomendação: não grava log nem consome o limite do recommend. Mesmo assim respeita
+// as restrições obrigatórias do perfil no banco (e a tela revalida com hardFilterReason, incluindo estados do usuário).
+export interface ShelfQuery {
+  genres?: Genre[];
+  minYear?: number;
+  maxYear?: number;
+  maxRuntimeMin?: number;
+  minRating?: number;
+  streaming?: boolean; // só filmes inclusos em assinatura/grátis no Brasil (JustWatch via TMDB)
+}
+
+export async function browseMovies(s: ShelfQuery, c: Constraints, limit = 24): Promise<Movie[]> {
+  // `as string`: com a string literal, o tipo do supabase-js explode após vários filtros encadeados (TS2589).
+  let q = supabase.from('movies').select(MOVIE_COLUMNS as string).not('tmdb->>posterPath', 'is', null);
+  const pick = (a: number | null | undefined, b: number | null | undefined, f: (x: number, y: number) => number) =>
+    a == null ? (b ?? null) : b == null ? a : f(a, b);
+  const minYear = pick(s.minYear, c.minYear, Math.max);
+  const maxYear = pick(s.maxYear, c.maxYear, Math.min);
+  const maxRuntime = pick(s.maxRuntimeMin, c.maxRuntimeMin, Math.min);
+  const minRating = pick(s.minRating, c.minRating, Math.max);
+  if (minYear !== null) q = q.gte('year', minYear);
+  if (maxYear !== null) q = q.lte('year', maxYear);
+  if (maxRuntime !== null) q = q.lte('runtime_min', maxRuntime);
+  if (c.minRuntimeMin !== null) q = q.gte('runtime_min', c.minRuntimeMin);
+  if (minRating !== null) q = q.gte('rating_avg', minRating);
+  if (c.languages.length > 0) q = q.overlaps('languages', c.languages);
+  if (c.excludedGenres.length > 0) q = q.not('genres', 'ov', `{${c.excludedGenres.join(',')}}`);
+  if (s.genres?.length) q = q.overlaps('genres', s.genres);
+  if (s.streaming) {
+    q = q.or(['flatrate', 'free', 'ads'].map((type) => `tmdb->providers.cs.[{"type":"${type}"}]`).join(','));
+  }
+  const { data, error } = await q.order('popularity', { ascending: false }).order('id').limit(limit);
+  if (error) throw error;
+  return (data as unknown as MovieRow[]).map(rowToMovie);
 }
 
 // ---------------------------------------------------------------- Listas personalizadas (DEC-045)
