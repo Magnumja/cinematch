@@ -8,6 +8,9 @@
     <meta name="description" content="Uma recomendação de filme por vez, com o motivo explicado." />
     <title>Cineou</title>
     <!-- Ícones e atalho na tela inicial (iOS: apple-touch-icon; Android/Chrome: manifest). -->
+    <!-- favicon.ico primeiro: o Safari e alguns leitores pedem /favicon.ico direto; sem o arquivo, a regra de SPA da Vercel
+         devolvia o HTML e o navegador mostrava um ícone genérico. -->
+    <link rel="icon" href="/favicon.ico" sizes="any" />
     <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png" />
     <link rel="icon" type="image/png" sizes="48x48" href="/favicon-48.png" />
     <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
