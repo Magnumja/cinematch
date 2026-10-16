@@ -34,7 +34,7 @@ export function MovieMeta({ movie, size = 'sm' }: { movie: Movie; size?: 'sm' | 
   const avg = averageRating(movie);
   const userScore = tmdbUserScore(movie.tmdb);
   return (
-    <dl className={`flex flex-wrap items-center gap-x-4 gap-y-1 text-fog ${size === 'md' ? 'text-base' : 'text-sm'}`}>
+    <dl className={`flex flex-wrap items-center gap-x-4 gap-y-1 text-fog ${size === 'md' ? 'text-sm sm:text-base' : 'text-sm'}`}>
       {movie.year && (
         <div>
           <dt className="sr-only">Ano</dt>

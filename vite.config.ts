@@ -10,7 +10,7 @@ export default defineConfig({
   build: { outDir: '../dist', emptyOutDir: true },
   test: {
     root: '.',
-    include: ['core/**/*.test.ts', 'scripts/**/*.test.ts', 'web/src/**/*.test.{ts,tsx}'],
+    include: ['core/**/*.test.ts', 'scripts/**/*.test.ts', 'supabase/functions/**/*.test.ts', 'web/src/**/*.test.{ts,tsx}'],
     // Testes de componente declaram `// @vitest-environment jsdom` no topo do arquivo.
     environment: 'node',
   },

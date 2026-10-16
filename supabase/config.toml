@@ -421,3 +421,8 @@ import_map = "./functions/deno.json"
 [functions.scheduled-run]
 verify_jwt = false
 import_map = "./functions/deno.json"
+
+# Também autenticada pelo CRON_SECRET.
+[functions.deliver-push]
+verify_jwt = false
+import_map = "./functions/deno.json"

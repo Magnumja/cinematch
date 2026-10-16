@@ -11,11 +11,13 @@
 │  Auth                                                                   │
 │  Postgres + RLS: movies, profiles, user_movies, recommendations,        │
 │                  recommendation_items, recommendation_schedules,        │
-│                  job_runs                                               │
+│                  job_runs, push_subscriptions                           │
 │  Edge Functions (Deno):                                                 │
 │     recommend ─────┬──► _shared/service.ts ──► core/engine (TS puro)    │
 │     scheduled-run ─┘                                                    │
+│     deliver-push ──► _shared/webpush.ts ──► serviços de push (Web Push) │
 │  pg_cron (*/15 min) ──► scheduled-run (Bearer CRON_SECRET via Vault)    │
+│  pg_cron (*/15, +7 min) ──► deliver-push (mesmo segredo)                │
 └─────────────────────────────────────────────────────────────────────────┘
         ▲
         │ upsert (service role, mensal)

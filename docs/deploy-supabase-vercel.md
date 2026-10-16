@@ -12,8 +12,10 @@ Regra de ouro das chaves:
 | service_role key | Só no seu terminal, para carregar o catálogo | **Nunca** |
 | Senha do banco | Só no `supabase link` | **Nunca** |
 | `CRON_SECRET` | Segredo das Edge Functions | **Nunca** |
+| VAPID pública | Vercel (`VITE_VAPID_PUBLIC_KEY`) e Edge Functions (`VAPID_PUBLIC_KEY`) | Sim |
+| VAPID privada | Segredo das Edge Functions (`VAPID_PRIVATE_KEY`) | **Nunca** |
 
-Nunca coloque service_role, senha do banco ou `CRON_SECRET` na Vercel, no `.env` versionado ou no chat.
+Nunca coloque service_role, senha do banco, `CRON_SECRET` ou `VAPID_PRIVATE_KEY` na Vercel, no `.env` versionado ou no chat.
 
 ---
 
@@ -65,14 +67,21 @@ openssl rand -hex 32
 ```bash
 npx supabase secrets set ALLOWED_ORIGIN=https://cineou.vercel.app CRON_SECRET=<saida-do-openssl>
 ```
+Para os avisos no celular (DEC-048), gere as chaves VAPID uma vez na sua máquina e grave as três variáveis
+que o comando imprime para as funções (a privada é segredo; trocar o par invalida os aparelhos inscritos):
+```bash
+npm run push:keys
+npx supabase secrets set VAPID_PUBLIC_KEY=<publica> VAPID_PRIVATE_KEY=<privada> VAPID_SUBJECT=mailto:<seu-email>
+```
+A chave **pública** também vai na Vercel como `VITE_VAPID_PUBLIC_KEY` (Parte 6).
 - `ALLOWED_ORIGIN` precisa ser **exatamente** o domínio do site, sem barra no fim. As funções aceitam um único domínio; URLs de prévia da Vercel não vão funcionar.
 - `SUPABASE_URL` e `SUPABASE_SERVICE_ROLE_KEY` já existem nas funções hospedadas; não precisa definir.
 
 3.3. Publique as duas funções:
 ```bash
-npx supabase functions deploy recommend scheduled-run
+npx supabase functions deploy recommend scheduled-run deliver-push
 ```
-A `scheduled-run` sobe sem verificação de JWT (definido em `supabase/config.toml`), porque quem a chama é o cron com o `CRON_SECRET`.
+A `scheduled-run` e a `deliver-push` sobem sem verificação de JWT (definido em `supabase/config.toml`), porque quem as chama é o cron com o `CRON_SECRET`.
 
 3.4. Ligue o cron das recomendações agendadas. No painel, abra **SQL Editor → New query**, cole e rode
 (o segundo valor é **o mesmo** `CRON_SECRET` do passo 3.2):
@@ -84,7 +93,7 @@ Para conferir que o agendamento existe:
 ```sql
 select jobname, schedule from cron.job;
 ```
-Deve listar `scheduled-recommendations` a cada 15 minutos.
+Deve listar `scheduled-recommendations` e `deliver-push`, ambos a cada 15 minutos.
 
 ## Parte 4: carregar o catálogo de filmes
 
@@ -116,6 +125,7 @@ Em **Authentication → Sign In / Providers → Email** fica a opção **Confirm
 |---|---|
 | `VITE_SUPABASE_URL` | `https://<PROJECT_REF>.supabase.co` |
 | `VITE_SUPABASE_ANON_KEY` | a chave **anon public** |
+| `VITE_VAPID_PUBLIC_KEY` | a chave **pública** de `npm run push:keys` (opcional; sem ela os avisos ficam desligados) |
 
 6.2. Confira em **Settings → Build and Deployment**:
 - Framework: *Vite*. Install, build e output vêm do `vercel.json` (`npm ci`, `npm run build`, `dist`).
@@ -144,6 +154,7 @@ O domínio de produção `cineou.vercel.app` em geral já é público; a proteç
 | Home sem filmes / nenhuma recomendação compatível | Catálogo não carregado | Parte 4 |
 | Link do e-mail abre `127.0.0.1` | Site URL não configurada | Parte 5 |
 | Recomendações agendadas nunca chegam | Segredos do Vault ausentes ou diferentes do `CRON_SECRET` | Passo 3.4 |
+| Avisos não chegam no celular | `VAPID_*` não gravados (o `deliver-push` responde 503 em `job_runs`/logs), chave pública da Vercel diferente da das funções, ou no iPhone o app não foi adicionado à tela de início | Passo 3.2 e Parte 6 |
 | Erro em chamadas para `*.supabase.co` bloqueadas pela CSP | Domínio do Supabase personalizado | Ajustar `connect-src` em `vercel.json` |
 
 ## Atualizações futuras
@@ -158,7 +169,7 @@ O domínio de produção `cineou.vercel.app` em geral já é público; a proteç
 Para quem publicou antes desta data:
 ```bash
 npx supabase db push                                   # aplica remove_assistant e tmdb
-npx supabase functions deploy recommend scheduled-run
+npx supabase functions deploy recommend scheduled-run deliver-push
 npx supabase functions delete assistant                # se ela tinha sido publicada
 npx supabase secrets unset ANTHROPIC_API_KEY           # se existia
 ```

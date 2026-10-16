@@ -1,6 +1,6 @@
 import { AnimatedInput } from './components/AnimatedInput.tsx';
 // Rotas e guarda de acesso: sem sessão → login; sem onboarding → onboarding; senão o app.
-import { BrowserRouter, Link, Navigate, Outlet, Route, Routes } from 'react-router-dom';
+import { BrowserRouter, Link, Navigate, Outlet, Route, Routes, useLocation, useNavigationType } from 'react-router-dom';
 import { Navbar } from './components/Navbar.tsx';
 import { TmdbAttribution } from './components/Poster.tsx';
 import { lazy, Suspense, useEffect, useState, type FormEvent } from 'react';
@@ -48,6 +48,18 @@ function usePrefetchPages() {
 }
 
 const PageFallback = () => <PageSkeleton />;
+
+// O BrowserRouter mantém a rolagem da tela anterior: ao abrir um filme a partir de um card no
+// fim da lista, a página nova abria lá embaixo. Navegação nova começa no topo; voltar/avançar
+// (POP) fica com a restauração do navegador.
+function ScrollToTop() {
+  const { pathname } = useLocation();
+  const navigationType = useNavigationType();
+  useEffect(() => {
+    if (navigationType !== 'POP') window.scrollTo(0, 0);
+  }, [pathname, navigationType]);
+  return null;
+}
 
 function Layout() {
   const { t } = useI18n();
@@ -179,6 +191,7 @@ export default function App() {
   return (
     <SessionProvider>
       <BrowserRouter>
+        <ScrollToTop />
         <Gate />
       </BrowserRouter>
     </SessionProvider>
