@@ -372,6 +372,24 @@ Status possíveis:
   - O registro interno continua em `docs/ui-component-sources.md`.
   - Os créditos de dados (TMDB, JustWatch, Wikidata) continuam, porque são exigidos pelos termos dessas fontes.
 
+### DEC-047 — Prateleiras de navegação na Home (2026-10-16)
+- **Status:** Aprovado · **Data:** 2026-10-16
+- **Decisão:** abaixo das recomendações, a Home ganha prateleiras horizontais de pôsteres:
+  - "Porque você gosta de {gênero}", até 2, a partir dos gêneros preferidos;
+  - "Nos streamings no Brasil": incluso em assinatura ou grátis, com dados do JustWatch;
+  - "Lançamentos recentes": últimos 3 anos;
+  - "Clássicos aclamados": até 1995, nota da crítica 8 ou mais;
+  - "Sessão rápida": até 100 minutos.
+- **Regras:**
+  - São navegação pelo catálogo (`browseMovies`), não recomendação: não gravam log, não usam o motor e não consomem
+    o limite da Edge Function `recommend`.
+  - Mesmo assim, as restrições obrigatórias do perfil são aplicadas na consulta, e a tela revalida cada filme com
+    `hardFilterReason` (vistos, sem interesse, não gostei).
+  - Gêneros marcados como "não curto" também ficam de fora.
+  - Um filme aparece uma vez só na página (destaque, grid ou a primeira prateleira em que couber).
+  - Prateleira com menos de 4 filmes não aparece.
+  - Só filmes com pôster.
+
 ## Pendências abertas
 
 | Item | Situação |

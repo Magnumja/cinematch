@@ -2,7 +2,7 @@
 -- Rodar com: npx supabase test db
 begin;
 create extension if not exists pgtap with schema extensions;
-select plan(65);
+select plan(66);
 
 -- Dados de teste (sintéticos).
 insert into auth.users (id, email) values
@@ -302,6 +302,8 @@ select throws_ok(
 );
 delete from auth.users where id = '00000000-0000-0000-0000-00000000000a';
 select is((select count(*)::int from public.user_lists where user_id = '00000000-0000-0000-0000-00000000000a'), 0, 'excluir a conta apaga as listas em cascata');
+
+select has_index('public', 'movies', 'movies_tmdb_pending_idx', 'índice parcial da fila do TMDB (evita timeout no enriquecimento)');
 
 -- Busca sem acento e pelo título pt-BR do TMDB
 select is(public.search_normalize('Amélie AÇÃO'), 'amelie acao', 'search_normalize tira acento e caixa');

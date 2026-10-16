@@ -28,6 +28,18 @@ const idsOnly = process.argv.includes('--ids-only');
 const TOKEN = idsOnly ? '' : env('TMDB_READ_TOKEN');
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
+// Erros passageiros do banco (timeout 57014, conexão, 5xx do PostgREST): tenta de novo com espera crescente.
+async function withRetry<T>(what: string, fn: () => PromiseLike<{ data: T; error: { code?: string; message: string } | null }>): Promise<T> {
+  for (let attempt = 1; ; attempt++) {
+    const { data, error } = await fn();
+    if (!error) return data;
+    const transient = ['57014', '08006', '08003', '53300', 'PGRST000', 'PGRST001', 'PGRST002'].includes(error.code ?? '') || !error.code;
+    if (!transient || attempt >= 5) throw new Error(`${what}: ${error.code ?? ''} ${error.message}`);
+    console.warn(`  ${what} falhou (${error.code ?? 'rede'}); nova tentativa ${attempt + 1}/5`);
+    await sleep(2 ** attempt * 1000);
+  }
+}
+
 // ---------------------------------------------------------------- 1. QID → id do TMDB (Wikidata P4947)
 type Binding = { f: { value: string }; t: { value: string } };
 async function sparql(query: string, attempt = 1): Promise<Binding[]> {
@@ -107,25 +119,30 @@ async function enrich() {
   let withPoster = 0;
   let withProviders = 0;
   let notFound = 0;
+  // Duas filas, cada uma servida por um índice (sem OR, que obrigava a varrer a tabela e estourava o timeout):
+  // 1) nunca buscados, por popularidade (movies_tmdb_pending_idx); 2) vencidos, os mais antigos primeiro.
+  let phase: 'pending' | 'stale' = 'pending';
   while (done < limit) {
-    // Os processados saem do filtro (tmdb_fetched_at vira agora), então sempre se lê a primeira página.
-    const { data, error } = await db
-      .from('movies')
-      .select('id,tmdb_id')
-      .not('tmdb_id', 'is', null)
-      .or(`tmdb_fetched_at.is.null,tmdb_fetched_at.lt.${cutoff}`)
-      .order('popularity', { ascending: false })
-      .order('id')
-      .limit(Math.min(PAGE, limit - done));
-    if (error) throw error;
-    if (data.length === 0) break;
+    const size = Math.min(PAGE, limit - done);
+    const data = await withRetry('ler fila', () =>
+      phase === 'pending'
+        ? db.from('movies').select('id,tmdb_id').not('tmdb_id', 'is', null).is('tmdb_fetched_at', null)
+            .order('popularity', { ascending: false }).order('id').limit(size)
+        : db.from('movies').select('id,tmdb_id').not('tmdb_id', 'is', null).lt('tmdb_fetched_at', cutoff)
+            .order('tmdb_fetched_at').order('id').limit(size),
+    );
+    if (!data || data.length === 0) {
+      if (phase === 'stale') break;
+      phase = 'stale';
+      continue;
+    }
 
     const queue = [...(data as { id: string; tmdb_id: number }[])];
     const pending: { id: string; tmdb: unknown }[] = [];
     const flush = async () => {
       if (pending.length === 0) return;
-      const { error: e } = await db.rpc('apply_tmdb', { p_rows: pending.splice(0) });
-      if (e) throw e;
+      const rows = pending.splice(0);
+      await withRetry('gravar lote', () => db.rpc('apply_tmdb', { p_rows: rows }));
     };
     await Promise.all(
       Array.from({ length: CONCURRENCY }, async () => {
