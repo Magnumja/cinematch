@@ -415,6 +415,17 @@ Status possíveis:
 - **Perfil em abas:** Gosto, Filtros, Avisos e Conta, com a aba no endereço (`/profile?tab=alerts`). "Nunca
   recomendar" saiu de Gosto e foi para Filtros, junto com os outros limites obrigatórios (DEC-021).
 
+### DEC-049 — Landing page antes do login (2026-10-16)
+- **Status:** Aprovado · **Data:** 2026-10-16
+- **Decisão:** sem sessão, `/` mostra uma página de apresentação com a identidade visual do app; o login fica em
+  `/login` (`/login?mode=signup` abre direto em "Criar conta"). Com sessão, `/` continua sendo a Home.
+- **Regras:**
+  - Só fatos verificáveis do produto (catálogo de ~102 mil filmes do Wikidata, uma recomendação por vez, sem IA,
+    grátis na fase de testes). Sem números de usuários, depoimentos ou filmes/notas inventados.
+  - O cartão de exemplo é uma ilustração sem filme real (sem título, pôster ou nota) e diz isso na legenda.
+  - Links diretos para telas do app (ex.: `/movie/Q…`) sem sessão continuam abrindo o login no próprio endereço.
+  - Rodapé com as fontes e o aviso do TMDB, como no app.
+
 ## Pendências abertas
 
 | Item | Situação |

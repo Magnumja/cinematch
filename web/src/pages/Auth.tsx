@@ -1,4 +1,4 @@
-import { Link } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import { AnimatedInput } from '../components/AnimatedInput.tsx';
 // Entrar ou criar conta (DEC-027: e-mail e senha via Supabase Auth).
 import { useState, type FormEvent } from 'react';
@@ -11,7 +11,9 @@ const TITLES = { signIn: 'auth.signIn', signUp: 'auth.signUp', reset: 'auth.rese
 
 export default function Auth() {
   const { t } = useI18n();
-  const [mode, setMode] = useState<'signIn' | 'signUp' | 'reset'>('signIn');
+  const [params] = useSearchParams();
+  // A landing manda ?mode=signup no botão "Criar conta".
+  const [mode, setMode] = useState<'signIn' | 'signUp' | 'reset'>(params.get('mode') === 'signup' ? 'signUp' : 'signIn');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [message, setMessage] = useState<{ kind: 'error' | 'info'; text: string } | null>(null);
@@ -45,7 +47,9 @@ export default function Auth() {
     <main className="auth-layout mx-auto grid min-h-dvh max-w-6xl items-center gap-10 px-5 py-10 sm:px-8 lg:grid-cols-[1.2fr_1fr]">
       <div className="reveal auth-intro">
         <div className="cinema-orbit" aria-hidden="true"><span /><span /><span /></div>
-        <img src={logo} alt="Cineou" width={296} height={80} className="h-9 w-auto" />
+        <Link to="/" aria-label="Cineou" className="relative inline-block">
+          <img src={logo} alt="Cineou" width={296} height={80} className="h-9 w-auto" />
+        </Link>
         <p className="relative mt-12 text-xs font-medium tracking-[0.2em] text-ember">{t('auth.eyebrow')}</p>
         <h1 className="relative mt-5 font-display text-[clamp(3rem,7vw,6rem)] leading-[0.96] font-extrabold text-balance text-paper uppercase">{t('auth.title')}</h1>
         <p className="mt-6 max-w-md text-lg text-fog">{t('auth.subtitle')}</p>

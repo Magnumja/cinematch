@@ -147,6 +147,15 @@ button:not(:disabled), a { touch-action: manipulation; }
 .cinema-orbit span { position: absolute; width: 27rem; aspect-ratio: 1; border: 1px solid #f0872f26; border-radius: 50%; right: 1rem; top: 0; }
 .cinema-orbit span:nth-child(2) { transform: translate(3rem, 3rem); }
 .cinema-orbit span:nth-child(3) { transform: translate(6rem, 6rem); background: radial-gradient(ellipse at top right, #f0872f14, transparent 65%); }
+.landing-hero .cinema-orbit { inset: 0; }
+.landing-poster {
+  background:
+    repeating-linear-gradient(90deg, #ffffff10 0 6px, transparent 6px 14px) top / 100% 8px no-repeat,
+    repeating-linear-gradient(90deg, #ffffff10 0 6px, transparent 6px 14px) bottom / 100% 8px no-repeat,
+    radial-gradient(circle at 30% 25%, #f0872f66, transparent 55%),
+    linear-gradient(160deg, #3a2a1f, #16171a 70%);
+}
+.landing-glow { position: absolute; inset: auto -20% -60% -20%; height: 120%; background: radial-gradient(ellipse at center, #f0872f2e, transparent 60%); pointer-events: none; }
 .auth-form { position: relative; box-shadow: 0 24px 80px #0005, inset 0 1px 0 #ffffff0a; }
 .auth-steps { position: relative; display: flex; flex-wrap: wrap; gap: 1.5rem; margin-top: 3rem; padding-top: 1.5rem; border-top: 1px solid var(--color-matte); }
 .auth-steps li { max-width: 8rem; font-size: 0.75rem; color: var(--color-fog); }

@@ -11,6 +11,7 @@ import { browserLocale, LocaleProvider, useI18n } from './lib/i18n.tsx';
 import { SessionProvider, useSession } from './lib/session.tsx';
 import Auth from './pages/Auth.tsx';
 import Home from './pages/Home.tsx';
+import Landing from './pages/Landing.tsx';
 
 // Telas fora do caminho principal (login → Home) carregam sob demanda e são pré-carregadas
 // quando o navegador fica ocioso, para a navegação não esperar o download na hora do clique.
@@ -141,7 +142,10 @@ function Gate() {
   } else if (!session) {
     content = (
       <Routes>
+        <Route index element={<Landing />} />
+        <Route path="login" element={<Auth />} />
         <Route path="about" element={<Suspense fallback={<PageFallback />}><About /></Suspense>} />
+        {/* Link direto para uma tela do app (ex.: /movie/Q…) sem sessão: login no próprio endereço, que abre depois de entrar. */}
         <Route path="*" element={<Auth />} />
       </Routes>
     );
